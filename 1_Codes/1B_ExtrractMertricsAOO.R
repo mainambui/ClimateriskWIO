@@ -1,8 +1,19 @@
 ##PREPARE TO EXTRACT DATA TO AOO
-library(SearchTrees)
-hzd.CDD <- resample(hzd.CDD, hzd.TAP) #align extent with the risk of the stack
-hazard.stk <- stack(hzd.SST,hzd.pH,hzd.CDD,hzd.TAP,hzd.EVAP,hzd.NPP)
-index <- rep(1:8, times=nlayers(hazard.stk)/8)#8 = 4 ssps * 2 periods
+
+library(tidyverse);library(raster);library(SearchTrees);library(sf);library(sp)
+#import some important functions
+source("1_Codes/2_DataNorms.R")
+
+#Import all data
+wio.AOO <- readRDS("2_Data/spreadsheet/2_Ecosystems/wioAOO.wTEV.rds")
+wio.ISO3 <- st_read("2_Data/shp/country_shape.shp") %>% st_as_sf() %>% st_transform(crs = "+proj=longlat")
+
+
+hazard.stk <- stack(list.files("./2_Data/raster", pattern='*.nc',full.names=TRUE))
+hazard.stk <- calc(hazard.stk, fun = inormal2) #QUANTILE TRANSFORM
+hazard.stk <- normRaster(hazard.stk) #NORMALISED
+
+index <- rep(1:8, times=nlayers(hazard.stk)/8)#8 = 4 ssps * 2 periods 
 #mean (MN)
 mn_stk <- stackApply(hazard.stk, indices=index, fun=median, na.rm = TRUE)
 names(mn_stk) <- c("hzd.mn.ssp126.2050","hzd.mn.ssp126.2100",
@@ -27,18 +38,15 @@ clm.hzd.pts <- hzd.stk[inds,]
 climdata.All <- cbind(wio.AOO, clm.hzd.pts[,3:ncol(clm.hzd.pts)])
 # N <- ncol(climdata.All)
 # climdata.All <- climdata.All %>% mutate(dplyr::across(4:94,~ normalize(inormal2(.x))))
-write_rds(climdata.All, paste0(db.dir, "1-Climate metrics/wioAOO.clim.raw.rds"))
 
-#Import and add Stephs metrics to the data
-climdata.All <- readRDS(paste0(db.dir, "1-Climate metrics/wioAOO.clim.raw.rds"))
 #Calculate Exposure Dimensions of the RISK model.
 names(climdata.All)
 grdArea = (25e3)^2
 (climdata.All <- climdata.All %>% 
-    mutate(ExpCoral = normalize(inormal2(CoralExt)),
-           ExpSeagrass = normalize(inormal2(seagrassExt)), 
-           ExpCrop = normalize(inormal2(Cropland)), 
-           ExpMangrove = normalize(inormal2(mangroveExt)),
+    mutate(ExpCoral = normalize(inormal2(CoralExt/grdArea)),
+           ExpSeagrass = normalize(inormal2(seagrassExt/grdArea)), 
+           ExpCrop = normalize(inormal2(Cropland/grdArea)), 
+           ExpMangrove = normalize(inormal2(mangroveExt/grdArea)),
            ExpFRic = normalize(inormal2(FRic)),
            ExpFDiv = normalize(inormal2(FDiv)),
            ExpEve = normalize(inormal2(FEve)),
@@ -61,23 +69,23 @@ grdArea = (25e3)^2
   %>% ungroup())
 
 (climdata.All <- climdata.All %>%
-    mutate(imp.ssp126.2050 = ((hzd.mn.ssp126.2050*wgts.ssp126.2050)*(land.sea.mn.exp*wgts.Exposure))/(wgts.ssp126.2050*wgts.Exposure),
-           imp.ssp126.2100 = ((hzd.mn.ssp126.2100*wgts.ssp126.2100)*(land.sea.mn.exp*wgts.Exposure))/(wgts.ssp126.2100*wgts.Exposure),
-           imp.ssp245.2050 = ((hzd.mn.ssp245.2050*wgts.ssp245.2050)*(land.sea.mn.exp*wgts.Exposure))/(wgts.ssp245.2050*wgts.Exposure),
-           imp.ssp245.2100 = ((hzd.mn.ssp245.2100*wgts.ssp245.2100)*(land.sea.mn.exp*wgts.Exposure))/(wgts.ssp245.2100*wgts.Exposure),
-           imp.ssp370.2050 = ((hzd.mn.ssp370.2050*wgts.ssp370.2050)*(land.sea.mn.exp*wgts.Exposure))/(wgts.ssp370.2050*wgts.Exposure),
-           imp.ssp370.2100 = ((hzd.mn.ssp370.2100*wgts.ssp370.2100)*(land.sea.mn.exp*wgts.Exposure))/(wgts.ssp370.2100*wgts.Exposure),
-           imp.ssp585.2050 = ((hzd.mn.ssp585.2050*wgts.ssp585.2050)*(land.sea.mn.exp*wgts.Exposure))/(wgts.ssp585.2050*wgts.Exposure),
-           imp.ssp585.2100 = ((hzd.mn.ssp585.2100*wgts.ssp585.2100)*(land.sea.mn.exp*wgts.Exposure))/(wgts.ssp585.2100*wgts.Exposure)
+    mutate(imp.ssp126.2050 = ((hzd.mn.ssp126.2050*wgts.ssp126.2050)*(land.sea.mn.exp*wgts.Exposure))/(wgts.ssp126.2050+wgts.Exposure),
+           imp.ssp126.2100 = ((hzd.mn.ssp126.2100*wgts.ssp126.2100)*(land.sea.mn.exp*wgts.Exposure))/(wgts.ssp126.2100+wgts.Exposure),
+           imp.ssp245.2050 = ((hzd.mn.ssp245.2050*wgts.ssp245.2050)*(land.sea.mn.exp*wgts.Exposure))/(wgts.ssp245.2050+wgts.Exposure),
+           imp.ssp245.2100 = ((hzd.mn.ssp245.2100*wgts.ssp245.2100)*(land.sea.mn.exp*wgts.Exposure))/(wgts.ssp245.2100+wgts.Exposure),
+           imp.ssp370.2050 = ((hzd.mn.ssp370.2050*wgts.ssp370.2050)*(land.sea.mn.exp*wgts.Exposure))/(wgts.ssp370.2050+wgts.Exposure),
+           imp.ssp370.2100 = ((hzd.mn.ssp370.2100*wgts.ssp370.2100)*(land.sea.mn.exp*wgts.Exposure))/(wgts.ssp370.2100+wgts.Exposure),
+           imp.ssp585.2050 = ((hzd.mn.ssp585.2050*wgts.ssp585.2050)*(land.sea.mn.exp*wgts.Exposure))/(wgts.ssp585.2050+wgts.Exposure),
+           imp.ssp585.2100 = ((hzd.mn.ssp585.2100*wgts.ssp585.2100)*(land.sea.mn.exp*wgts.Exposure))/(wgts.ssp585.2100+wgts.Exposure)
     ) %>% ungroup())
 
-write_rds(climdata.All, paste0(db.dir, "4-Risk Outputs/wioAOO.All.raw.rds"))
-#writexl::write_xlsx(climdata.All, "ClimData.xlsx")
-#Import polygons of countries bordering the WIO
+#write_rds(climdata.All, "2_Data/spreadsheet/1_Climate/wioAOO.metrics.rds")
+
+
 #limit <- max(abs(climdata$tx90p_thresh), na.rm = TRUE) * c(-1, 1)
 climdata.All %>% 
   filter(is.finite(imp.ssp126.2050))%>% 
-  ggplot()+ geom_sf(data = focusISO3, colour = "grey70", fill = "grey95")+
+  ggplot()+ geom_sf(data = wio.ISO3, colour = "grey70", fill = "grey95")+
   geom_raster(aes(x,y,fill=imp.ssp126.2050))+
   scale_fill_viridis_c(name = "tx90p[%]", option = "B")+
   #rcartocolor::scale_fill_carto_c(name="", palette = 'Earth', direction = -1)+
