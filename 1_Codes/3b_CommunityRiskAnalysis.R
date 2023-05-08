@@ -1,0 +1,133 @@
+
+dfRisk <- read_csv("2_Data/spreadsheet/RiskDataFINAL.csv")
+df <- rbind(data.frame(sce = "SSP2-4.5", impact = dfRisk$imp.ssp245.2050, vulnerab = dfRisk$Sensitivity/dfRisk$AdaptiveCapacity, village = dfRisk$Villages, country = dfRisk$Country),
+            data.frame(sce = "SSP3-7.0", impact = dfRisk$imp.ssp370.2050, vulnerab = dfRisk$Sensitivity/dfRisk$AdaptiveCapacity, village = dfRisk$Villages, country = dfRisk$Country))
+
+df <- df %>% mutate(country = ifelse(country == "Kenya", "KEN", country),
+                    country = ifelse(country == "Tanzania", "TZA", country),
+                    country = ifelse(country == "Madagascar", "MDG", country),
+                    country = ifelse(country == "Mozambique", "MOZ", country))
+
+yR <- range(df$impact);xR <- range(df$vulnerab)
+lgd <- expand.grid(x = seq(xR[1],xR[2], diff(xR)/100), 
+                   y = seq(yR[1],yR[2], diff(yR)/100)) %>% 
+  mutate(x1 = scales::rescale(x),
+         y1 = scales::rescale(y),
+         mix = rgb(y1,x1,.5))
+# Q1 <- summary(df$impact)[[2]] #first quartile
+# Q3 <- summary(df$impact)[[5]] #third quartile
+# MdV <- median(df$vulnerab)
+(plt1 <- ggplot()+
+    
+    # geom_rect(aes(fill = "LL", xmin = -Inf, xmax = MdV, ymin = -Inf, ymax = Q1), show.legend = FALSE)+
+    # geom_rect(aes(fill = "ML", xmin = -Inf, xmax = MdV, ymin = Q1, ymax = Q3), show.legend = FALSE)+
+    # geom_rect(aes(fill = "HL", xmin = -Inf, xmax = MdV, ymin = Q3, ymax = Inf), show.legend = FALSE)+
+    # geom_rect(aes(fill = "LH", xmin = MdV, xmax = Inf, ymin = -Inf, ymax = Q1), show.legend = FALSE)+
+    # geom_rect(aes(fill = "MH", xmin = MdV, xmax = Inf, ymin = Q1, ymax = Q3), show.legend = FALSE)+
+    # geom_rect(aes(fill = "HH", xmin = MdV, xmax = Inf, ymin = Q3, ymax = Inf), show.legend = FALSE)+
+    # scale_fill_manual(values = c("LL"="#595757","ML"="#806587","HL"="#A874B8",
+    #                             "LH"="#468C38","MH"="#8CA289","HH"="#D3B9DB")) +
+    geom_raster(data = lgd, aes(x = x, y = y, fill = mix))+
+    scale_fill_identity()+
+    geom_point(data = df, aes(x = vulnerab, y = impact, colour = country, shape=sce), size = 1.5) +
+    labs(y = "Climate change impacts", x = "", title = "Risk Space")+
+    scale_colour_manual(name="", values = c("KEN"="darkred","MDG"="yellow","MOZ"="dodgerblue4","TZA"="grey50"))+
+    theme_bw(base_size = 10)+
+    scale_x_continuous(expand = c(0,0))+scale_y_continuous(expand = c(0,0))+
+    #geom_vline(xintercept = median(df$vulnerab, na.rm = TRUE), linetype = 2, linewidth = .5, colour = "grey80")+
+    theme(legend.position = "bottom",
+          legend.title = element_blank(),
+          legend.background = element_rect(fill = NA),
+          legend.key.size = unit(1, 'cm'),
+          legend.text = element_text(size = 2),
+          legend.key.height = unit(.1, 'cm'),
+          legend.key.width = unit(.1, 'cm'), 
+          
+          panel.border = element_blank()))
+
+(plt2 <- ggplot()+
+    # geom_rect(aes(fill = "LL", xmin = -Inf, xmax = MdV, ymin = -Inf, ymax = Q1), show.legend = FALSE)+
+    # geom_rect(aes(fill = "ML", xmin = -Inf, xmax = MdV, ymin = Q1, ymax = Q3), show.legend = FALSE)+
+    # geom_rect(aes(fill = "HL", xmin = -Inf, xmax = MdV, ymin = Q3, ymax = Inf), show.legend = FALSE)+
+    # geom_rect(aes(fill = "LH", xmin = MdV, xmax = Inf, ymin = -Inf, ymax = Q1), show.legend = FALSE)+
+    # geom_rect(aes(fill = "MH", xmin = MdV, xmax = Inf, ymin = Q1, ymax = Q3), show.legend = FALSE)+
+    # geom_rect(aes(fill = "HH", xmin = MdV, xmax = Inf, ymin = Q3, ymax = Inf), show.legend = FALSE)+
+    # scale_fill_manual(values = c("LL"="#595757","ML"="#806587","HL"="#A874B8","LH"="#468C38","MH"="#8CA289","HH"="#D3B9DB")) +
+    geom_raster(data = lgd, aes(x = x, y = y, fill = mix))+
+    scale_fill_identity()+
+    
+    geom_point(data = df, aes(x = vulnerab, y = impact), alpha = 0) +
+    labs(y = "", x = "", title = "Options Space")+
+    scale_y_continuous(breaks = c(.3, .43, .55), labels = c("Low", "Medium", "High") , position = "right", expand = c(0,0))+
+    scale_x_continuous(breaks = c(1.02, 1.3), labels = c("Low","High"), expand = c(0,0))+
+    theme_bw(base_size = 10)+
+    theme(axis.text.y = element_text(angle = 90),
+          axis.ticks = element_blank(), 
+          panel.border = element_blank()))
+
+library(patchwork)
+plt1+plt2+plot_layout(ncol = 2)
+#ggsave("outputs/xx1.png", width = 5.5, height = 4, dpi = 1200)
+
+df <- dfRisk %>% mutate(risk.ssp370.2050 = ((imp.ssp370.2050*Sensitivity)/AdaptiveCapacity),
+                        risk.ssp245.2050 = ((imp.ssp245.2050*Sensitivity)/AdaptiveCapacity)) %>% dplyr::select(Country,Villages,risk.ssp370.2050,risk.ssp245.2050)
+df <- rbind(data.frame(sce = "SSP2-4.5", risk = (df$risk.ssp245.2050), village = df$Villages, country = df$Country),
+            data.frame(sce = "SSP3-7.0", risk = (df$risk.ssp370.2050), village = df$Villages, country = df$Country))
+Q1 <- summary(df$risk)[[2]] #first quartile
+Q3 <- summary(df$risk)[[5]] #third quartile
+(plt2 <- ggplot(data = df)+
+    geom_rect(fill = "grey90", xmin = -Inf, xmax = Inf, ymin = -Inf, ymax = Q1)+
+    geom_rect(fill = "grey80", xmin = -Inf, xmax = Inf, ymin = Q1, ymax = Q3)+
+    geom_rect(fill = "grey70", xmin = -Inf, xmax = Inf, ymin = Q3, ymax = Inf)+
+    #geom_col(aes(reorder(Villages, risk.ssp370.2050), risk.ssp370.2050), width = .2, fill = "grey90")+
+    geom_point(aes(x=reorder(village,-risk), y=risk, colour = country, shape = sce), size = 1.5, position = position_dodge2(width =.5))+
+    #geom_text(aes(x=reorder(village,risk), y=risk, label = round(risk,2)), size = 2, colour = "black", fontface = "bold",position = position_dodge(width =.5))+
+    labs(x = "Coastal communities", y = "Climate risk index", title = "(A)")+
+    #scale_y_continuous(expand = c(0,0), limits = c(.2,.9), breaks = seq(.2,.9, 0.1))+
+    theme_classic(base_size = 10)+
+    scale_colour_manual(name="", values = c("Kenya"="darkred","Madagascar"="yellow","Mozambique"="dodgerblue4","Tanzania"="grey50"))+
+    scale_fill_manual(name="", values = c("Kenya"="darkred","Madagascar"="yellow","Mozambique"="dodgerblue4","Tanzania"="grey50"))+
+    theme(legend.position = "", 
+          legend.background = element_rect(fill = NA),
+          axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1),
+          axis.line = element_line(linewidth = .1), 
+          axis.ticks = element_line(linewidth = .1)))
+
+df <- dfRisk %>% 
+  mutate(risk.ssp370.2050 = ((imp.ssp370.2050*Sensitivity)/AdaptiveCapacity),
+         risk.ssp245.2050 = ((imp.ssp245.2050*Sensitivity)/AdaptiveCapacity)) %>% 
+  group_by(Country) %>% 
+  summarise(mn.370 = mean(risk.ssp370.2050),
+            sd.370 = sd(risk.ssp370.2050),
+            
+            mn.245 = mean(risk.ssp245.2050),
+            sd.245 = sd(risk.ssp245.2050)) %>% ungroup()
+
+df <- rbind(data.frame(sce = "SSP2-4.5", MN = df$mn.245, LL = df$mn.245-df$sd.245, UL = df$mn.245+df$sd.245, country = df$Country),
+            data.frame(sce = "SSP3-7.0", MN = df$mn.370, LL = df$mn.370-df$sd.370, UL = df$mn.370+df$sd.370, country = df$Country)) %>% group_by (country) %>% mutate(sortMag = mean(MN))
+(plt3 <- ggplot(data = df)+ 
+    geom_pointrange(aes(x = reorder(country, sortMag), y = MN, ymin = LL, ymax = UL, colour=country, shape = sce),
+                    size=.1, linewidth = .2, position = position_dodge(width =.5))+
+    scale_colour_manual(name="", values = c("Kenya"="darkred","Madagascar"="yellow","Mozambique"="dodgerblue4","Tanzania"="grey50"))+
+    labs(y = "Climate risk index", x="", title = "(B)")+
+    #scale_y_continuous(expand = c(0,0), limits = c(.2,.9), breaks = seq(.2,.9, 0.1), position = "right")+
+    theme_classic(base_size = 10)+
+    theme(legend.position = "", 
+          panel.background = element_rect(fill = "transparent", colour = NA),
+          plot.background = element_rect(fill = "transparent"),
+          axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1), 
+          panel.border = element_blank(), 
+          axis.line = element_line(linewidth = .1), 
+          axis.ticks = element_line(linewidth = .1)))
+#ggsave("outputs/3_Nations.png", width = 4, height = 4, dpi = 1200)
+
+#plt1 + annotation_custom(ggplotGrob(plt2), xmin = 1, xmax = 14, ymin = .5, ymax = .79)
+#((plt1+plt3+plot_layout(ncol = 2, widths = c(2,1)))/plt2)+plot_layout(ncol = 1, heights = c(2,1))
+plt2+plt3+plot_layout(ncol = 2, widths = c(5,1))
+ggsave("outputs/3_RiskNew.png", dpi = 1200, height = 3, width = 8)
+
+df <- dfRisk %>% 
+  mutate(risk.ssp370.2050 = ((imp.ssp370.2050*Sensitivity)/AdaptiveCapacity),
+         risk.ssp245.2050 = ((imp.ssp245.2050*Sensitivity)/AdaptiveCapacity))
+df %>% ggplot() + geom_point(aes(x = (TEV/1e6), y = risk.ssp245.2050))
+df %>% ggplot() + geom_point(aes(x = (TEV/1e6), y = imp.ssp245.2050))

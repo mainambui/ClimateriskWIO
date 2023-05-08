@@ -4,16 +4,31 @@ normalize <- function(x) {
   return((x- min(x, na.rm = TRUE)) /(max(x, na.rm = TRUE)-min(x, na.rm = TRUE)))
 }
 
-inormal <- function(x) {
-  nm <- names(x)
-  df <- as.data.frame(x, xy=TRUE)
-  df$rr <- normalize(qnorm((rank(df[3], na.last = "keep") - 0.5) / sum(!is.na(df[3]))))
-  rr <- rasterFromXYZ(df[,c("x","y","rr")])
-  names(rr) <- paste0(nm)
+# inormal <- function(x) {
+#   nm <- names(x)
+#   df <- as.data.frame(x, xy=TRUE)
+#   df$rr <- normalize(qnorm((rank(df[3], na.last = "keep") - 0.5) / sum(!is.na(df[3]))))
+#   rr <- rasterFromXYZ(df[,c("x","y","rr")])
+#   names(rr) <- paste0(nm)
+#   return(rr)
+# }
+
+## if you want the so-called 'error function'
+erf <- function(x) 2 * pnorm(x * sqrt(2)) - 1
+## and the inverses
+erfinv <- function (x) qnorm((1 + x)/2)/sqrt(2)
+inormal2 <- function(x) erfinv((rank(x, na.last = "keep") - 0.5) / sum(!is.na(x)))
+
+qtrans <- function(rr, nm){
+  df <- rr[, c("x","y",nm)]
+  #Quantile normalisation
+  df$score <- erfinv((rank(df[[nm]], na.last = "keep") - 0.5) / sum(!is.na(df[[nm]])))
+  df$std_id <- scales::rescale(df[, "score"])
+  
+  rr <- rasterFromXYZ(df[,c("x","y","std_id")])
+  crs(rr) <- "+proj=longlat"
   return(rr)
 }
-
-inormal2 <- function(x) qnorm((rank(x, na.last = "keep") - 0.5) / sum(!is.na(x)))
 
 #Slope/Trends
 slpFUN = function(k) {
@@ -23,10 +38,10 @@ slpFUN = function(k) {
   return(mn <- mn*(length(time)/12))
 }
 
-normRaster <- function(x) {
-  x = x + minValue(x)
-  return((x-minValue(x)) /(maxValue(x)-minValue(x)))
-}
+# normRaster <- function(x) {
+#   x = x + minValue(x)
+#   return((x-minValue(x)) /(maxValue(x)-minValue(x)))
+# }
 
 ##Extreme temperature above the top 90th percentile of the baseline (1981-2010)
 txpFUN <- function(r, nYrs, baseline, p, pn=c("near","far")){
