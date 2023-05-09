@@ -1,4 +1,4 @@
-
+library(tidyverse)
 dfRisk <- read_csv("2_Data/spreadsheet/RiskDataFINAL.csv")
 df <- rbind(data.frame(sce = "SSP2-4.5", impact = dfRisk$imp.ssp245.2050, vulnerab = dfRisk$Sensitivity/dfRisk$AdaptiveCapacity, village = dfRisk$Villages, country = dfRisk$Country),
             data.frame(sce = "SSP3-7.0", impact = dfRisk$imp.ssp370.2050, vulnerab = dfRisk$Sensitivity/dfRisk$AdaptiveCapacity, village = dfRisk$Villages, country = dfRisk$Country))
@@ -69,8 +69,8 @@ library(patchwork)
 plt1+plt2+plot_layout(ncol = 2)
 #ggsave("outputs/xx1.png", width = 5.5, height = 4, dpi = 1200)
 
-df <- dfRisk %>% mutate(risk.ssp370.2050 = ((imp.ssp370.2050*Sensitivity)/AdaptiveCapacity),
-                        risk.ssp245.2050 = ((imp.ssp245.2050*Sensitivity)/AdaptiveCapacity)) %>% dplyr::select(Country,Villages,risk.ssp370.2050,risk.ssp245.2050)
+df <- dfRisk %>% mutate(risk.ssp370.2050 = ((imp.ssp370.2050+Sensitivity)-AdaptiveCapacity),
+                        risk.ssp245.2050 = ((imp.ssp245.2050+Sensitivity)-AdaptiveCapacity)) %>% dplyr::select(Country,Villages,risk.ssp370.2050,risk.ssp245.2050)
 df <- rbind(data.frame(sce = "SSP2-4.5", risk = (df$risk.ssp245.2050), village = df$Villages, country = df$Country),
             data.frame(sce = "SSP3-7.0", risk = (df$risk.ssp370.2050), village = df$Villages, country = df$Country))
 Q1 <- summary(df$risk)[[2]] #first quartile
@@ -93,9 +93,8 @@ Q3 <- summary(df$risk)[[5]] #third quartile
           axis.line = element_line(linewidth = .1), 
           axis.ticks = element_line(linewidth = .1)))
 
-df <- dfRisk %>% 
-  mutate(risk.ssp370.2050 = ((imp.ssp370.2050*Sensitivity)/AdaptiveCapacity),
-         risk.ssp245.2050 = ((imp.ssp245.2050*Sensitivity)/AdaptiveCapacity)) %>% 
+df <- dfRisk %>% mutate(risk.ssp370.2050 = (imp.ssp370.2050+Sensitivity)-AdaptiveCapacity,
+                        risk.ssp245.2050 = (imp.ssp245.2050+Sensitivity)-AdaptiveCapacity) %>% 
   group_by(Country) %>% 
   summarise(mn.370 = mean(risk.ssp370.2050),
             sd.370 = sd(risk.ssp370.2050),
@@ -119,12 +118,9 @@ df <- rbind(data.frame(sce = "SSP2-4.5", MN = df$mn.245, LL = df$mn.245-df$sd.24
           panel.border = element_blank(), 
           axis.line = element_line(linewidth = .1), 
           axis.ticks = element_line(linewidth = .1)))
-#ggsave("outputs/3_Nations.png", width = 4, height = 4, dpi = 1200)
-
 #plt1 + annotation_custom(ggplotGrob(plt2), xmin = 1, xmax = 14, ymin = .5, ymax = .79)
-#((plt1+plt3+plot_layout(ncol = 2, widths = c(2,1)))/plt2)+plot_layout(ncol = 1, heights = c(2,1))
 plt2+plt3+plot_layout(ncol = 2, widths = c(5,1))
-ggsave("outputs/3_RiskNew.png", dpi = 1200, height = 3, width = 8)
+#ggsave("outputs/3_RiskNew.png", dpi = 1200, height = 3, width = 8)
 
 df <- dfRisk %>% 
   mutate(risk.ssp370.2050 = ((imp.ssp370.2050*Sensitivity)/AdaptiveCapacity),
