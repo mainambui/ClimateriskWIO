@@ -5,7 +5,7 @@ lfs.dir = "E:/Datasets/"
 #db.dir = "C:/Users/MQ45019738/Dropbox/6_WIO_CCVA/WIOProjects/Data/"
 
 #import some important functions
-source("1_Codes/2_DataNorms.R")
+source("1_Codes/2_KeyFunctions.R")
 
 #Import all data
 wio.AOO <- readRDS("2_Data/spreadsheet/2_Ecosystems/wioAOO.wTEV.rds")
@@ -129,21 +129,19 @@ ggsave("outputs/ph_series.png", height = 3, width = 5)
 
 pH.ssp126.2050 <- slpFUN(pH126[[73:432]]) %>% mask(., sst.trend.ssp370.2050) ;names(pH.ssp126.2050)<-"pH.ssp126.2050"
 pH.ssp126.2100 <- slpFUN(pH126[[673:1032]]) %>% mask(., sst.trend.ssp370.2050) ;names(pH.ssp126.2100)<-"pH.ssp126.2100"
-#Remember to remove 126 from the 245 
-pH.ssp245.2050 <- slpFUN(pH126[[73:432]]) %>% mask(., sst.trend.ssp370.2050) ;names(pH.ssp245.2050)<-"pH.ssp245.2050"
-pH.ssp245.2100 <- slpFUN(pH126[[673:1032]]) %>% mask(., sst.trend.ssp370.2050) ;names(pH.ssp245.2100)<-"pH.ssp245.2100"
+pH.ssp245.2050 <- slpFUN(pH245[[73:432]]) %>% mask(., sst.trend.ssp370.2050) ;names(pH.ssp245.2050)<-"pH.ssp245.2050"
+pH.ssp245.2100 <- slpFUN(pH245[[673:1032]]) %>% mask(., sst.trend.ssp370.2050) ;names(pH.ssp245.2100)<-"pH.ssp245.2100"
 pH.ssp370.2050 <- slpFUN(pH370[[73:432]]) %>% mask(., sst.trend.ssp370.2050);names(pH.ssp370.2050)<-"pH.ssp370.2050"
 pH.ssp370.2100 <- slpFUN(pH370[[673:1032]]) %>% mask(., sst.trend.ssp370.2050) ;names(pH.ssp370.2100)<-"pH.ssp370.2100"
 pH.ssp585.2050 <- slpFUN(pH585[[73:432]]) %>% mask(., sst.trend.ssp370.2050);names(pH.ssp585.2050)<-"pH.ssp585.2050"
 pH.ssp585.2100 <- slpFUN(pH585[[673:1032]]) %>% mask(., sst.trend.ssp370.2050) ;names(pH.ssp585.2100)<-"pH.ssp585.2100"
-# if (require(ncdf4)) {
-#   rnc <- raster::writeRaster(stack(pH.ssp126.2050,pH.ssp126.2100,
-#                                    pH.ssp245.2050,pH.ssp245.2100,
-#                                    pH.ssp370.2050,pH.ssp370.2100,
-#                                    pH.ssp585.2050,pH.ssp585.2100), 
-#                              filename=file.path("2_Data/raster/wio_esm_pH_trend.nc"), format="CDF", overwrite=TRUE)
-# }
-
+if (require(ncdf4)) {
+  rnc <- raster::writeRaster(stack(pH.ssp126.2050,pH.ssp126.2100,
+                                   pH.ssp245.2050,pH.ssp245.2100,
+                                   pH.ssp370.2050,pH.ssp370.2100,
+                                   pH.ssp585.2050,pH.ssp585.2100),
+                             filename=file.path("2_Data/raster/wio_esm_pH_trend.nc"), format="CDF", overwrite=TRUE)
+}
 
 #LAND SURFACE TEMPERATURE
 lst.Hist <- stack(paste0(lfs.dir, "CLIM-CCVA/ts_historical_ESM25km.nc")); lst.Hist<- crop(lst.Hist,wio.ISO3)
