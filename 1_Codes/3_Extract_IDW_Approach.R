@@ -134,12 +134,12 @@ write_csv(wio.com.idw.impacts, "2_Data/spreadsheet/RiskDataFINAL.csv")
 
 #ExTRACT RASTER VALUES TO POINTS
 #Import SE data
-socioecom <- read_csv(paste0(db.dir, "3-Vulnerability/SocialDataAll.csv"))
-socioecom <- filter(socioecom, !is.na(x))
-#Convert to spatial object
-spdf <- st_as_sf(socioecom, coords=c('x', 'y'), crs="+proj=longlat")
-spdf <- st_transform(spdf, "+proj=moll")
-spdf_buff <- st_buffer(spdf, dist = 100000)
+# socioecom <- read_csv(paste0(db.dir, "3-Vulnerability/SocialDataAll.csv"))
+# socioecom <- filter(socioecom, !is.na(x))
+# #Convert to spatial object
+# spdf <- st_as_sf(socioecom, coords=c('x', 'y'), crs="+proj=longlat")
+# spdf <- st_transform(spdf, "+proj=moll")
+# spdf_buff <- st_buffer(spdf, dist = 100000)
 # (dfRisk <- raster::extract(cmpd.Hzrd, spdf_buff, weights=TRUE, na.rm=TRUE, df=TRUE) %>% 
 #     as.data.frame() %>% group_by(ID) %>% 
 #     summarise(mn.spp126.2050 = matrixStats::weightedMedian(climate.imp.spp126.2050, weight, na.rm = TRUE),

@@ -8,8 +8,7 @@ wio.AOO <- readRDS("2_Data/spreadsheet/2_Ecosystems/wioAOO.wTEV.rds")
 wio.ISO3 <- st_read("2_Data/shp/country_shape.shp") %>% st_as_sf() %>% st_transform(crs = "+proj=longlat")
 
 nc <- list.files("./2_Data/raster", pattern='*.nc',full.names=TRUE)
-hazard.stk <- stack(nc)
-hazard.stk <- calc(hazard.stk, fun = inormal2) #Quantile transform
+hazard.stk <- stack(nc) %>% calc(., fun = inormal2) #Quantile transform
 hazard.stk <- calc(hazard.stk, fun = normalize) #Normalise outputs from qtrans
 
 index <- rep(1:8, times=nlayers(hazard.stk)/8)#8 = 4 ssps * 2 periods
@@ -49,10 +48,10 @@ climdata <- cbind(wio.AOO, clm.hzd.pts[,3:ncol(clm.hzd.pts)])
 names(climdata)
 grdArea = (25e3)^2
 (climdata <- climdata %>% 
-    mutate(ExpCoral = normalize(inormal2(CoralExt)),
-           ExpSeagrass = normalize(inormal2(seagrassExt)), 
-           ExpCrop = normalize(inormal2(Cropland)), 
-           ExpMangrove = normalize(inormal2(mangroveExt)),
+    mutate(ExpCoral = normalize(inormal2(CoralExt/grdArea)),
+           ExpSeagrass = normalize(inormal2(seagrassExt/grdArea)), 
+           ExpCrop = normalize(inormal2(Cropland/grdArea)), 
+           ExpMangrove = normalize(inormal2(mangroveExt/grdArea)),
            ExpFRic = normalize(inormal2(FRic)),
            ExpFDiv = normalize(inormal2(FDiv)),
            ExpEve = normalize(inormal2(FEve)),
