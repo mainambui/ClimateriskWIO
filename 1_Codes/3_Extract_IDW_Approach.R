@@ -68,11 +68,12 @@ spdf <- st_intersection(wio_cline, spdf)
 wio_metrics <- read_rds("2_Data/spreadsheet/1_Climate/wioAOO.metrics.rds")
 EucDist <- read_csv("2_Data/spreadsheet/wio_DistMatrix.csv")
 
-EucDist <- EucDist[c("src", "nbr", "EucDist")] %>% filter(EucDist>0,EucDist<1e5) #filter to remove self intersections #
+EucDist <- EucDist[c("src", "nbr", "EucDist")] %>% filter(EucDist>0) #filter to remove self intersections #
 colnames(wio_metrics)[colnames(wio_metrics)=="ID"]<-"nbr"
 EucDist <- merge(EucDist, wio_metrics, by = "nbr")
 EucDist$inverseDist <- (1/EucDist$EucDist)
-#Visual chekcing of distribution
+
+#Visual checking of distribution
 hist(EucDist$inverseDist, breaks = 30)
 names(EucDist)
 (idw.impacts <- EucDist %>% group_by(src) %>%
