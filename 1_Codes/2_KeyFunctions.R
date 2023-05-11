@@ -1,30 +1,20 @@
 
-normalize <- function(x) {
-  x = x + min(x, na.rm = TRUE)
-  return((x- min(x, na.rm = TRUE)) /(max(x, na.rm = TRUE)-min(x, na.rm = TRUE)))
-}
-
-# inormal <- function(x) {
-#   nm <- names(x)
-#   df <- as.data.frame(x, xy=TRUE)
-#   df$rr <- normalize(qnorm((rank(df[3], na.last = "keep") - 0.5) / sum(!is.na(df[3]))))
-#   rr <- rasterFromXYZ(df[,c("x","y","rr")])
-#   names(rr) <- paste0(nm)
-#   return(rr)
+# normalize <- function(x) {
+#   x = x + min(x, na.rm = TRUE)
+#   return((x- min(x, na.rm = TRUE)) /(max(x, na.rm = TRUE)-min(x, na.rm = TRUE)))
 # }
 
-## if you want the so-called 'error function'
-erf <- function(x) 2 * pnorm(x * sqrt(2)) - 1
-## and the inverses
-erfinv <- function (x) qnorm((1 + x)/2)/sqrt(2)
-inormal2 <- function(x) erfinv((rank(x, na.last = "keep") - 0.5) / sum(!is.na(x)))
+normalize = scales::rescale
 
+#https://gist.github.com/variani/d6a42ac64f05f8ed17e6c9812df5492b
+inormal <- function(x) qnorm((rank(x, na.last = "keep") - 0.5) / sum(!is.na(x)))
 qtrans <- function(rr, nm){
   df <- rr[, c("x","y",nm)]
-  #Quantile normalisation
-  df$score <- erfinv((rank(df[[nm]], na.last = "keep") - 0.5) / sum(!is.na(df[[nm]])))
-  df$std_id <- scales::rescale(df[, "score"])
   
+  #Quantile normalisation
+  df$score <- qnorm((rank(df[[nm]], na.last = "keep") - 0.5) / sum(!is.na(df[[nm]])))
+  df$std_id <- scales::rescale(df[, "score"])
+  #Spatialise
   rr <- rasterFromXYZ(df[,c("x","y","std_id")])
   crs(rr) <- "+proj=longlat"
   return(rr)
@@ -231,12 +221,12 @@ rescale_QN_rr <- function(rr, nm){
 #   return(df)
 # }
 
-r_rescale_qn <- function(df, x){
-  #Quantile normalisation
-  output <- suppressWarnings(bestNormalize::orderNorm(df[,x]))
-  std_id <- scales::rescale(output$x.t)
-    return(std_id)
-}
+# r_rescale_qn <- function(df, x){
+#   #Quantile normalisation
+#   output <- suppressWarnings(bestNormalize::orderNorm(df[,x]))
+#   std_id <- scales::rescale(output$x.t)
+#     return(std_id)
+# }
 
 
 # decayNormed <- function(x, rt, type = c("decay", "growth")){
