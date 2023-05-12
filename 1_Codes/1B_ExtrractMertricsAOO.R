@@ -22,7 +22,7 @@ rr <- lapply(1:length(m1), function(x){qtrans(hazard.stk, m1[[x]])})
 rr <- stack(rr)
 hist(rr,breaks=50)
 
-
+# Average across metrics
 index <- rep(1:8, times=nlayers(rr)/8)#8=4 ssps * 2 periods
 #mean (MN)
 mn_stk <- stackApply(rr, indices=index, fun=median, na.rm=TRUE)
