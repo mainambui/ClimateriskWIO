@@ -14,7 +14,8 @@ hazard.stk <- stack(clim.nc);N <- nlayers(hazard.stk)
 hazard.stk <- extract(stack(clim.nc), wio.AOO.spdf, sp=TRUE,df=TRUE) %>% as.data.frame()
 colnames(hazard.stk)[colnames(hazard.stk) == "coords.x1"] <- "x"
 colnames(hazard.stk)[colnames(hazard.stk) == "coords.x2"] <- "y"
-hazard.stk <- DMwR2::knnImputation(hazard.stk[2:123], k = 3)
+n = ncol(hazard.stk)
+hazard.stk <- DMwR2::knnImputation(hazard.stk[2:n], k = 3)
 
 #Quantile transform
 m1 = paste("variable", seq(1,N,1), sep = ".")
