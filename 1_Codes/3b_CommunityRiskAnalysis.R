@@ -75,7 +75,7 @@ plt1+plt2+plot_layout(ncol = 2)
 dfRisk<- dfRisk %>% mutate(rr.ssp585 = ((imp.ssp585.2050*Sensitivity)/AdaptiveCapacity)*exp(-ic2020),
                            rr.ssp245 = ((imp.ssp245.2050*Sensitivity)/AdaptiveCapacity)*exp(-ic2020))
 df <- rbind(data.frame(sce = "SSP2-4.5", risk = (dfRisk$rr.ssp245), village = dfRisk$Villages, ISO3 = dfRisk$ISO3),
-            data.frame(sce = "SSP3-7.0", risk = (dfRisk$rr.ssp585), village = dfRisk$Villages, ISO3 = dfRisk$ISO3))
+            data.frame(sce = "SSP5-8.5", risk = (dfRisk$rr.ssp585), village = dfRisk$Villages, ISO3 = dfRisk$ISO3))
 Q1 <- summary(df$risk)[[2]] #first quartile
 Q3 <- summary(df$risk)[[5]] #third quartile
 (plt2 <- ggplot(data = df)+

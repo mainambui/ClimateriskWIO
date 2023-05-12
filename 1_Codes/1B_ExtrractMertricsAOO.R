@@ -46,22 +46,20 @@ colnames(climdata)[colnames(climdata) == "coords.x2"] <- "y"
 #Calculate Exposure Dimensions of the RISK model.
 names(climdata)
 grdArea = (25e3)^2
-hist(climdata$FRic, breaks = 30)
-hist(climdata$FDiv, breaks = 30)
 (climdata <- climdata %>% 
-    mutate(ExpCoral = normalize(inormal(CoralExt)),
-           ExpSeagrass = normalize(inormal(seagrassExt)), 
-           ExpCrop = normalize(inormal(Cropland)), 
-           ExpMangrove = normalize(inormal(mangroveExt)),
-           ExpFRic = ((FRic)),
-           ExpFDiv = ((FDiv)),
-           ExpEve = ((FEve)),
+    mutate(ExpCoral = normalize(inormal(CoralExt/grdArea)),
+           ExpSeagrass = normalize(inormal(seagrassExt/grdArea)), 
+           ExpCrop = normalize(inormal(Cropland/grdArea)), 
+           ExpMangrove = normalize(inormal(mangroveExt/grdArea)),
+           ExpFRic = normalize((FRic)),
+           ExpFDiv = normalize((FDiv)),
+           ExpEve = normalize((FEve)),
            ExpRich = normalize((Nb_sp)))%>%
     rowwise() %>%
     mutate(land.sea.mn.exp = mean(c(ExpCoral,ExpSeagrass,ExpCrop,ExpMangrove,ExpFRic,ExpFDiv,ExpEve,ExpRich), na.rm = TRUE),
            land.sea.sd.exp = sd(c(ExpCoral,ExpSeagrass,ExpCrop,ExpMangrove,ExpFRic,ExpFDiv,ExpEve,ExpRich), na.rm = TRUE)) %>% ungroup()%>%
     
-    mutate(#land.sea.sd.exp = ifelse(is.na(land.sea.sd.exp), 1, land.sea.sd.exp),
+    mutate(land.sea.sd.exp = ifelse(is.na(land.sea.sd.exp), 1, land.sea.sd.exp),
            #land.sea.sd.exp = ifelse(is.na(land.sea.sd.exp), agrmt::minnz(na.omit(land.sea.sd.exp)), land.sea.sd.exp),
            wgts.Exposure = (land.sea.sd.exp/land.sea.mn.exp)^-1,
            wgts.ssp126.2050 = (hzd.sd.ssp126.2050/hzd.mn.ssp126.2050)^-1,
@@ -86,7 +84,6 @@ hist(climdata$FDiv, breaks = 30)
     ) %>% ungroup())
 hist(climdata$imp.ssp370.2050, breaks=30)
 write_rds(climdata, "2_Data/spreadsheet/1_Climate/wioAOO.metrics.rds")
-
 
 #limit <- max(abs(climdataNew$tx90p_thresh), na.rm = TRUE) * c(-1, 1)
 climdata %>% 

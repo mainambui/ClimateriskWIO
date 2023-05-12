@@ -73,7 +73,8 @@ colnames(wio_metrics)[colnames(wio_metrics)=="ID"]<-"nbr"
 EucDist <- merge(EucDist, wio_metrics, by = "nbr")
 EucDist$inverseDist <- (1/EucDist$EucDist)
 
-#Visual checking of distribution
+
+#Visual chekcing of distribution
 hist(EucDist$inverseDist, breaks = 30)
 names(EucDist)
 (idw.impacts <- EucDist %>% group_by(src) %>%
