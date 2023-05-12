@@ -5,7 +5,6 @@
 # }
 
 normalize = scales::rescale
-
 #https://gist.github.com/variani/d6a42ac64f05f8ed17e6c9812df5492b
 inormal <- function(x) qnorm((rank(x, na.last = "keep") - 0.5) / sum(!is.na(x)))
 qtrans <- function(rr, nm){

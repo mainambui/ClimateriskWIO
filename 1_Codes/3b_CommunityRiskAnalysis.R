@@ -86,7 +86,7 @@ Q3 <- summary(df$risk)[[5]] #third quartile
     geom_point(aes(x=reorder(village,-risk), y=risk, colour = ISO3, shape = sce), size = 1.5, position = position_dodge2(width =.5))+
     #geom_text(aes(x=reorder(village,risk), y=risk, label = round(risk,2)), size = 2, colour = "black", fontface = "bold",position = position_dodge(width =.5))+
     labs(x = "Coastal communities", y = "Residual risk index", title = "(A)")+
-    scale_y_continuous(expand = c(0,0), limits = c(.2,.8), breaks = seq(.2,.8, 0.1))+
+    scale_y_continuous(expand = c(0,0), limits = c(.3,.62), breaks = seq(.3,.6, 0.1))+
     theme_classic(base_size = 10)+
     scale_colour_manual(name="", values = c("KEN"="darkred","MDG"="yellow","MOZ"="dodgerblue4","TZA"="grey50"))+
     scale_fill_manual(name="", values = c("KEN"="darkred","MDG"="yellow","MOZ"="dodgerblue4","TZA"="grey50"))+
@@ -120,7 +120,7 @@ df <- rbind(data.frame(sce = "SSP2-4.5", MN = df$mn.245, LL = df$mn.245-df$sd.24
                     size=.1, linewidth = .2, position = position_dodge(width =.5))+
     scale_colour_manual(name="", values = c("KEN"="darkred","MDG"="yellow","MOZ"="dodgerblue4","TZA"="grey50", "ALL"="cyan"))+
     labs(y = "Residual risk index", x="", title = "(B)")+
-    scale_y_continuous(expand = c(0,0), limits = c(.2,.8), breaks = seq(.2,.8, 0.1),position = "right")+
+    scale_y_continuous(expand = c(0,0), limits = c(.3,.62), breaks = seq(.3,.6, 0.1),position = "right")+
     theme_classic(base_size = 10)+
     theme(legend.position = "", 
           panel.background = element_rect(fill = "transparent", colour = NA),
@@ -131,8 +131,8 @@ df <- rbind(data.frame(sce = "SSP2-4.5", MN = df$mn.245, LL = df$mn.245-df$sd.24
           axis.ticks = element_line(linewidth = .1)))
 #plt1 + annotation_custom(ggplotGrob(plt2), xmin = 1, xmax = 14, ymin = .5, ymax = .79)
 plt2+plt3+plot_layout(ncol = 2, widths = c(5,1))
-ggsave("3_RiskNew.png", dpi = 1200, height = 4, width = 8)
+ggsave("3_RiskResidual.png", dpi = 1200, height = 4, width = 8)
 
 
-dfRisk %>% ggplot() + geom_point(aes(x = (TEV/1e6), y = rr.ssp370))
+dfRisk %>% ggplot() + geom_point(aes(x = (TEV/1e6), y = rr.ssp585))
 dfRisk %>% ggplot() + geom_point(aes(x = (TEV/1e6), y = imp.ssp370.2050))

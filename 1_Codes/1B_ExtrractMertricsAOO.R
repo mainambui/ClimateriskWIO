@@ -19,8 +19,7 @@ hazard.stk <- DMwR2::knnImputation(hazard.stk[2:123], k = 3)
 #Quantile transform
 m1 = paste("variable", seq(1,N,1), sep = ".")
 rr <- lapply(1:length(m1), function(x){qtrans(hazard.stk, m1[[x]])})
-rr <- stack(rr)
-hist(rr,breaks=50)
+rr <- stack(rr);plot(rr)
 
 # Average across metrics
 index <- rep(1:8, times=nlayers(rr)/8)#8=4 ssps * 2 periods
@@ -39,7 +38,7 @@ names(sd_stk) <- c("hzd.sd.ssp126.2050","hzd.sd.ssp126.2100","hzd.sd.ssp245.2050
 plot(sd_stk)
 
 # climdata <- climdata %>% mutate(dplyr::across(4:94,~ normalize(inormal2(.x))))
-climdata <- extract(stack(mn_stk,sd_stk), wio.AOO.spdf, sp=TRUE,df=TRUE) %>% as.data.frame()
+climdata <- extract(stack(mn_stk, sd_stk), wio.AOO.spdf, sp=TRUE, df=TRUE) %>% as.data.frame()
 colnames(climdata)[colnames(climdata) == "coords.x1"] <- "x"
 colnames(climdata)[colnames(climdata) == "coords.x2"] <- "y"
 
@@ -51,15 +50,15 @@ grdArea = (25e3)^2
            ExpSeagrass = normalize(inormal(seagrassExt/grdArea)), 
            ExpCrop = normalize(inormal(Cropland/grdArea)), 
            ExpMangrove = normalize(inormal(mangroveExt/grdArea)),
-           ExpFRic = normalize((FRic)),
-           ExpFDiv = normalize((FDiv)),
-           ExpEve = normalize((FEve)),
-           ExpRich = normalize((Nb_sp)))%>%
+           ExpFRic = ((FRic)),
+           ExpFDiv = ((FDiv)),
+           ExpEve = ((FEve)),
+           ExpNObs = normalize((Nb_sp)))%>%
     rowwise() %>%
-    mutate(land.sea.mn.exp = mean(c(ExpCoral,ExpSeagrass,ExpCrop,ExpMangrove,ExpFRic,ExpFDiv,ExpEve,ExpRich), na.rm = TRUE),
-           land.sea.sd.exp = sd(c(ExpCoral,ExpSeagrass,ExpCrop,ExpMangrove,ExpFRic,ExpFDiv,ExpEve,ExpRich), na.rm = TRUE)) %>% ungroup()%>%
+    mutate(land.sea.mn.exp = mean(c(ExpCoral,ExpSeagrass,ExpCrop,ExpMangrove,ExpFRic,ExpFDiv,ExpEve,ExpNObs), na.rm = TRUE),
+           land.sea.sd.exp = sd(c(ExpCoral,ExpSeagrass,ExpCrop,ExpMangrove,ExpFRic,ExpFDiv,ExpEve,ExpNObs), na.rm = TRUE)) %>% ungroup()%>%
     
-    mutate(land.sea.sd.exp = ifelse(is.na(land.sea.sd.exp), 1, land.sea.sd.exp),
+    mutate(#land.sea.sd.exp = ifelse(is.na(land.sea.sd.exp), 1, land.sea.sd.exp),
            #land.sea.sd.exp = ifelse(is.na(land.sea.sd.exp), agrmt::minnz(na.omit(land.sea.sd.exp)), land.sea.sd.exp),
            wgts.Exposure = (land.sea.sd.exp/land.sea.mn.exp)^-1,
            wgts.ssp126.2050 = (hzd.sd.ssp126.2050/hzd.mn.ssp126.2050)^-1,
