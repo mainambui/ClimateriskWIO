@@ -87,7 +87,7 @@ Q3 <- summary(df$risk)[[5]] #third quartile
     geom_point(aes(x=reorder(village,-risk), y=risk, colour = ISO3, shape = sce), size = 1.5, position = position_dodge2(width =.5))+
     #geom_text(aes(x=reorder(village,risk), y=risk, label = round(risk,2)), size = 2, colour = "black", fontface = "bold",position = position_dodge(width =.5))+
     labs(x = "Coastal communities", y = "Residual risk index", title = "(A)")+
-    scale_y_continuous(expand = c(0,0), limits = c(.2,.8), breaks = seq(.2,.8, 0.1))+
+    scale_y_continuous(expand = c(0,0), limits = c(.3,.8), breaks = seq(.3,.8, 0.1))+
     scale_shape_manual(values = c("SSP2-4.5" = 19, "SSP5-8.5" = 17))+
     theme_classic(base_size = 10)+
     scale_colour_manual(name="", values = c("KEN"="darkred","MDG"="yellow","MOZ"="dodgerblue4","TZA"="grey50"))+
@@ -123,7 +123,7 @@ df <- rbind(data.frame(sce = "SSP2-4.5", MN = df$mn.245, LL = df$mn.245-df$sd.24
     scale_colour_manual(name="", values = c("KEN"="darkred","MDG"="yellow","MOZ"="dodgerblue4","TZA"="grey50", "ALL"="cyan"))+
     scale_shape_manual(values = c("SSP2-4.5" = 19, "SSP5-8.5" = 17))+
     labs(y = "", x="", title = "(B)")+
-    scale_y_continuous(expand = c(0,0), limits = c(.2,.8), breaks = seq(.2,.8, 0.1),position = "right")+
+    scale_y_continuous(expand = c(0,0), limits = c(.3,.8), breaks = seq(.3,.8, 0.1),position = "right")+
     theme_classic(base_size = 10)+
     theme(legend.position = "", 
           panel.background = element_rect(fill = "transparent", colour = NA),
