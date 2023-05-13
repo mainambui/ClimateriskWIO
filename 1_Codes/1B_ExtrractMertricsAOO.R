@@ -1,4 +1,6 @@
 #PREPARE TO EXTRACT DATA TO AOO
+rm(list = ls())
+
 library(tidyverse);library(raster);library(SearchTrees);library(sf);library(sp)
 #import some important functions
 source("1_Codes/2_KeyFunctions.R")
@@ -9,36 +11,44 @@ wio.AOO.spdf <- st_as_sf(wio.AOO, coords=c('x', 'y'), crs="+proj=longlat")
 wio.ISO3 <- st_read("2_Data/shp/country_shape.shp") %>% st_as_sf() %>% st_transform(crs = "+proj=longlat")
 
 #LOAD METRICS
-clim.nc <- list.files("./2_Data/raster", pattern='*.nc',full.names=TRUE)
+clim.nc <- list.files("./2_Data/raster", pattern='*.nc',full.names=TRUE)[-c(1,2,3)]
 hazard.stk <- stack(clim.nc);N <- nlayers(hazard.stk)
-hazard.stk <- extract(stack(clim.nc), wio.AOO.spdf, sp=TRUE,df=TRUE) %>% as.data.frame()
-colnames(hazard.stk)[colnames(hazard.stk) == "coords.x1"] <- "x"
-colnames(hazard.stk)[colnames(hazard.stk) == "coords.x2"] <- "y"
-n = ncol(hazard.stk)
-hazard.stk <- DMwR2::knnImputation(hazard.stk[2:n], k = 3)
-
+df.hzd <- as.data.frame(hazard.stk, xy =TRUE)
 #Quantile transform
 m1 = paste("variable", seq(1,N,1), sep = ".")
-rr <- lapply(1:length(m1), function(x){qtrans(hazard.stk, m1[[x]])})
+rr <- lapply(1:length(m1), function(x){r_rescale(df.hzd, m1[[x]])})
 rr <- stack(rr);plot(rr)
 
+hzd.aoo <- extract(rr, wio.AOO.spdf, sp=TRUE,df=TRUE) %>% as.data.frame()
+colnames(hzd.aoo)[colnames(hzd.aoo) == "coords.x1"] <- "x"
+colnames(hzd.aoo)[colnames(hzd.aoo) == "coords.x2"] <- "y"
+n = ncol(hzd.aoo)
+hzd.aoo <- DMwR2::knnImputation(hzd.aoo[2:n], k = 3)
+
+
+m2 = paste("z_score", seq(1,N,1), sep = ".")
+rr.aoo <- lapply(1:length(m2), function(x){raster::rasterFromXYZ(hzd.aoo[,c("x","y",m2[[x]])])})
+rr.aoo <- stack(rr.aoo);plot(rr.aoo)
+crs(rr.aoo) <- "+proj=longlat"
+
+
 # Average across metrics
-index <- rep(1:8, times=nlayers(rr)/8)#8=4 ssps * 2 periods
+index <- rep(1:8, times=nlayers(rr.aoo)/8)#8=4 ssps * 2 periods
 #mean (MN)
-mn_stk <- stackApply(rr, indices=index, fun=median, na.rm=TRUE)
+mn_stk <- stackApply(rr.aoo, indices=index, fun=mean, na.rm=TRUE)
 names(mn_stk) <- c("hzd.mn.ssp126.2050","hzd.mn.ssp126.2100",
                    "hzd.mn.ssp245.2050","hzd.mn.ssp245.2100",
                    "hzd.mn.ssp370.2050","hzd.mn.ssp370.2100",
                    "hzd.mn.ssp585.2050","hzd.mn.ssp585.2100")
 plot(mn_stk)
 #Standard Deviation (SD)
-sd_stk <- stackApply(rr, indices=index, fun=sd, na.rm = TRUE)
+sd_stk <- stackApply(rr.aoo, indices=index, fun=sd, na.rm = TRUE)
 names(sd_stk) <- c("hzd.sd.ssp126.2050","hzd.sd.ssp126.2100","hzd.sd.ssp245.2050",
                    "hzd.sd.ssp245.2100","hzd.sd.ssp370.2050","hzd.sd.ssp370.2100",
                    "hzd.sd.ssp585.2050","hzd.sd.ssp585.2100")
 plot(sd_stk)
 
-# climdata <- climdata %>% mutate(dplyr::across(4:94,~ normalize(inormal2(.x))))
+# climdata <- climdata %>% mutate(dplyr::across(4:94,~ norm_scale(inormal2(.x))))
 climdata <- extract(stack(mn_stk, sd_stk), wio.AOO.spdf, sp=TRUE, df=TRUE) %>% as.data.frame()
 colnames(climdata)[colnames(climdata) == "coords.x1"] <- "x"
 colnames(climdata)[colnames(climdata) == "coords.x2"] <- "y"
@@ -47,14 +57,14 @@ colnames(climdata)[colnames(climdata) == "coords.x2"] <- "y"
 names(climdata)
 grdArea = (25e3)^2
 (climdata <- climdata %>% 
-    mutate(ExpCoral = normalize(inormal(CoralExt/grdArea)),
-           ExpSeagrass = normalize(inormal(seagrassExt/grdArea)), 
-           ExpCrop = normalize(inormal(Cropland/grdArea)), 
-           ExpMangrove = normalize(inormal(mangroveExt/grdArea)),
+    mutate(ExpCoral = norm_scale(inormal(CoralExt/grdArea)),
+           ExpSeagrass = norm_scale(inormal(seagrassExt/grdArea)), 
+           ExpCrop = norm_scale(inormal(Cropland/grdArea)), 
+           ExpMangrove = norm_scale(inormal(mangroveExt/grdArea)),
            ExpFRic = ((FRic)),
            ExpFDiv = ((FDiv)),
            ExpEve = ((FEve)),
-           ExpNObs = normalize((Nb_sp)))%>%
+           ExpNObs = norm_scale((Nb_sp)))%>%
     rowwise() %>%
     mutate(land.sea.mn.exp = mean(c(ExpCoral,ExpSeagrass,ExpCrop,ExpMangrove,ExpFRic,ExpFDiv,ExpEve,ExpNObs), na.rm = TRUE),
            land.sea.sd.exp = sd(c(ExpCoral,ExpSeagrass,ExpCrop,ExpMangrove,ExpFRic,ExpFDiv,ExpEve,ExpNObs), na.rm = TRUE)) %>% ungroup()%>%
@@ -69,7 +79,7 @@ grdArea = (25e3)^2
            wgts.ssp370.2050 = (hzd.sd.ssp370.2050/hzd.mn.ssp370.2050)^-1,
            wgts.ssp370.2100 = (hzd.sd.ssp370.2100/hzd.mn.ssp370.2100)^-1,
            wgts.ssp585.2050 = (hzd.sd.ssp585.2050/hzd.mn.ssp585.2050)^-1,
-           wgts.ssp585.2100 = (hzd.sd.ssp585.2100/hzd.mn.ssp585.2100)^-1) 
+           wgts.ssp585.2100 = (hzd.sd.ssp585.2100/hzd.mn.ssp585.2100)^-1)
   )
 
 (climdata <- climdata %>%

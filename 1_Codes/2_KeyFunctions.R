@@ -4,20 +4,41 @@
 #   return((x- min(x, na.rm = TRUE)) /(max(x, na.rm = TRUE)-min(x, na.rm = TRUE)))
 # }
 
-normalize = scales::rescale
+norm_scale = scales::rescale
 #https://gist.github.com/variani/d6a42ac64f05f8ed17e6c9812df5492b
-inormal <- function(x) qnorm((rank(x, na.last = "keep") - 0.5) / sum(!is.na(x)))
+inormal <- function(x) scales::rescale(qnorm((rank(x, na.last = "keep") - 0.5) / sum(!is.na(x))))
 qtrans <- function(rr, nm){
   df <- rr[, c("x","y",nm)]
   
   #Quantile normalisation
   df$score <- qnorm((rank(df[[nm]], na.last = "keep") - 0.5) / sum(!is.na(df[[nm]])))
-  df$std_id <- scales::rescale(df[, "score"])
+  df$std_id <- norm_scale(df[, "score"])
   #Spatialise
   rr <- rasterFromXYZ(df[,c("x","y","std_id")])
   crs(rr) <- "+proj=longlat"
   return(rr)
 }
+
+r_rescale <- function(df, var){
+  #Quantile normalisation
+  df$score <- (rank(df[[var]], na.last = "keep") - 0.5) / sum(!is.na(df[[var]]))
+  df$z_score <- scales::rescale(sqrt(2)*pracma::erfinv(2*df[,"score"]-1))
+  #Spatialise
+  rr <- rasterFromXYZ(df[,c("x","y","z_score")])
+  crs(rr) <- "+proj=longlat"
+  return(rr)
+}
+
+r_rescale_qn <- function(df, x){
+  #Quantile normalisation
+  output <- suppressWarnings(bestNormalize::orderNorm(df[,x]))
+  std_id <- scales::rescale(output$x.t)
+    return(std_id)
+ }
+
+
+
+
 
 #Slope/Trends
 slpFUN = function(k) {
@@ -95,8 +116,8 @@ txIntFUN <- function(r, nYrs, baseline, p, pn=c("near","far")){
 }
 
 
-#Extreme drought below the 10th percentile of the baseline (1981-2010)
-R10Freq <- function(r, nYears, baseR, p=.1, pn=c("near","far")){
+#Extreme rainfall below the 10th percentile of the baseline (1981-2010)
+r95Freq <- function(r, nYears, baseR, p, pn=c("near","far")){
   
   thresh <- raster::calc(baseR, fun = function(x){ quantile(x, probs = p, na.rm=TRUE)})
   names(thresh) <- "threshold"
@@ -114,7 +135,7 @@ R10Freq <- function(r, nYears, baseR, p=.1, pn=c("near","far")){
   n = ncol(rr)
   
   spdf <- rr %>% 
-    mutate(dplyr::across(starts_with("X2"),~ ifelse(.x <= threshold, 1, 0)))%>%
+    mutate(dplyr::across(starts_with("X2"),~ ifelse(.x >= threshold, 1, 0)))%>%
     mutate(value = 100*(rowSums(.[3:n], na.rm = TRUE)/length(3:n))) %>% 
     dplyr::select(x,y,value)
   
@@ -126,8 +147,8 @@ R10Freq <- function(r, nYears, baseR, p=.1, pn=c("near","far")){
   return(spdf)
 }
 
-#Extreme drought below the 10th percentile of the baseline (1981-2010)
-R10IntFUN <- function(r, nYears, baseR, p=.1, pn=c("near","far")){
+#Extreme rainfall above 95th percentile of the baseline (1981-2010)
+r95IntFUN <- function(r, nYears, baseR, p, pn=c("near","far")){
   
   thresh <- raster::calc(baseR, fun = function(x){ quantile(x, probs = p, na.rm=TRUE)})
   names(thresh) <- "threshold"
@@ -145,7 +166,7 @@ R10IntFUN <- function(r, nYears, baseR, p=.1, pn=c("near","far")){
   n = ncol(rr)
   
   spdf <- rr %>% 
-    mutate(dplyr::across(starts_with("X2"),~ ifelse(.x >= threshold, NA, 100*((.x-threshold)/threshold))))%>%
+    mutate(dplyr::across(starts_with("X2"),~ ifelse(.x <= threshold, NA, 100*((.x-threshold)/threshold))))%>%
     mutate(value = rowMeans(.[3:n], na.rm = TRUE)) %>% 
     dplyr::select(x,y,value)
   
@@ -165,67 +186,46 @@ R10IntFUN <- function(r, nYears, baseR, p=.1, pn=c("near","far")){
 # stdIMpact1$PredImp <- scales::rescale(mahalanobis(stdIMpact1[,3:5], colMeans(stdIMpact1[,3:5]), cov(stdIMpact1[,3:5])))
 
 #Import the exposed system and regrid
-regrdFun <- function(df,var,shp){
-  spdf <- df %>% dplyr::select(x,y,var) %>% na.omit()
-  coordinates(spdf) <- ~ x + y
-  gridded(spdf) <- TRUE
-  spdf <- crop(raster(spdf), shp)
-  
-  crs(spdf) <- "+proj=longlat"
-  spdf <- raster::projectRaster(spdf, res = .25, method="bilinear", crs = "+proj=longlat")
-  #name(spdf)<-paste0(var)
-}
+# regrdFun <- function(df,var,shp){
+#   spdf <- df %>% dplyr::select(x,y,var) %>% na.omit()
+#   coordinates(spdf) <- ~ x + y
+#   gridded(spdf) <- TRUE
+#   spdf <- crop(raster(spdf), shp)
+#   
+#   crs(spdf) <- "+proj=longlat"
+#   spdf <- raster::projectRaster(spdf, res = .25, method="bilinear", crs = "+proj=longlat")
+#   #name(spdf)<-paste0(var)
+# }
 
 
 #Estimate potential impacts as function of hazard and exposure
 #Normalise the datasets using quantile transformation
-rescale_QN_rr <- function(rr, nm){
-   #
-   df <- as.data.frame(rr[[nm]], xy=TRUE, na.rm=TRUE)
+# rescale_QN_rr <- function(rr, nm){
+#    #
+#    df <- as.data.frame(rr[[nm]], xy=TRUE, na.rm=TRUE)
+# 
+#    #Quantile normalisation
+#    df <- df[order(df[,nm], decreasing = FALSE),]
+#    df$id <- 1:nrow(df)
+#    df$score <- df$id/nrow(df)
+#    df$z_score <- sqrt(2)*pracma::erfinv(2*df[,"score"]-1)
+# 
+#    df$std_id <- scales::rescale(df[, "z_score"])
+#    df <- df %>% dplyr::select(x,y,std_id) %>% filter(is.finite(std_id))
+# 
+#   #Convert to raster
+#    spdf <- df
+#    coordinates(spdf) <- ~ x + y
+#    gridded(spdf) <- TRUE
+#    spdf <- raster(spdf)
+# 
+#    crs(spdf) <- "+proj=longlat"
+# 
+#    spdf <- raster::resample(spdf, tx90p_stack, method="bilinear")
+#    names(spdf) <- paste0("std_", nm)
+#    return(spdf)
+#  }
 
-   #Quantile normalisation
-   df <- df[order(df[,nm], decreasing = FALSE),]
-   df$id <- 1:nrow(df)
-   df$score <- df$id/nrow(df)
-   df$z_score <- sqrt(2)*pracma::erfinv(2*df[,"score"]-1)
-
-   df$std_id <- scales::rescale(df[, "z_score"])
-   df <- df %>% dplyr::select(x,y,std_id) %>% filter(is.finite(std_id))
-
-  #Convert to raster
-   spdf <- df
-   coordinates(spdf) <- ~ x + y
-   gridded(spdf) <- TRUE
-   spdf <- raster(spdf)
-
-   crs(spdf) <- "+proj=longlat"
-
-   spdf <- raster::resample(spdf, tx90p_stack, method="bilinear")
-   names(spdf) <- paste0("std_", nm)
-   return(spdf)
- }
-
-# r_rescale <- function(df, var){
-#
-#   #Quantile normalisation
-#   df <- df[order(df[,var], decreasing = FALSE),]
-#   df$id <- 1:nrow(df)
-#   df$score <- df$id/nrow(df)
-#   df$z_score <- sqrt(2)*pracma::erfinv(2*df[,"score"]-1)
-#
-#   df$std_id <- scales::rescale(df[, "z_score"])
-#   df <- df %>% dplyr::select(-c(id,score,z_score))
-#
-#   colnames(df)[colnames(df)=="std_id"] <- paste0("std_",var)
-#   return(df)
-# }
-
-# r_rescale_qn <- function(df, x){
-#   #Quantile normalisation
-#   output <- suppressWarnings(bestNormalize::orderNorm(df[,x]))
-#   std_id <- scales::rescale(output$x.t)
-#     return(std_id)
-# }
 
 
 # decayNormed <- function(x, rt, type = c("decay", "growth")){

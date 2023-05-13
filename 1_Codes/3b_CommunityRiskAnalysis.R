@@ -37,6 +37,7 @@ lgd <- expand.grid(x = seq(xR[1],xR[2], diff(xR)/100),
     scale_colour_manual(name="", values = c("KEN"="darkred","MDG"="yellow","MOZ"="dodgerblue4","TZA"="grey50"))+
     theme_bw(base_size = 10)+
     scale_x_continuous(expand = c(0,0))+scale_y_continuous(expand = c(0,0))+
+    scale_shape_manual(values = c("SSP2-4.5" = 19, "SSP3-7.0" = 17))+
     #geom_vline(xintercept = median(df$vulnerab, na.rm = TRUE), linetype = 2, linewidth = .5, colour = "grey80")+
     theme(legend.position = "bottom",
           legend.title = element_blank(),
@@ -86,7 +87,8 @@ Q3 <- summary(df$risk)[[5]] #third quartile
     geom_point(aes(x=reorder(village,-risk), y=risk, colour = ISO3, shape = sce), size = 1.5, position = position_dodge2(width =.5))+
     #geom_text(aes(x=reorder(village,risk), y=risk, label = round(risk,2)), size = 2, colour = "black", fontface = "bold",position = position_dodge(width =.5))+
     labs(x = "Coastal communities", y = "Residual risk index", title = "(A)")+
-    scale_y_continuous(expand = c(0,0), limits = c(.3,.62), breaks = seq(.3,.6, 0.1))+
+    scale_y_continuous(expand = c(0,0), limits = c(.2,.8), breaks = seq(.2,.8, 0.1))+
+    scale_shape_manual(values = c("SSP2-4.5" = 19, "SSP5-8.5" = 17))+
     theme_classic(base_size = 10)+
     scale_colour_manual(name="", values = c("KEN"="darkred","MDG"="yellow","MOZ"="dodgerblue4","TZA"="grey50"))+
     scale_fill_manual(name="", values = c("KEN"="darkred","MDG"="yellow","MOZ"="dodgerblue4","TZA"="grey50"))+
@@ -119,19 +121,23 @@ df <- rbind(data.frame(sce = "SSP2-4.5", MN = df$mn.245, LL = df$mn.245-df$sd.24
     geom_pointrange(aes(x = reorder(ISO3, sortMag), y = MN, ymin = LL, ymax = UL, colour=ISO3, shape = sce),
                     size=.1, linewidth = .2, position = position_dodge(width =.5))+
     scale_colour_manual(name="", values = c("KEN"="darkred","MDG"="yellow","MOZ"="dodgerblue4","TZA"="grey50", "ALL"="cyan"))+
-    labs(y = "Residual risk index", x="", title = "(B)")+
-    scale_y_continuous(expand = c(0,0), limits = c(.3,.62), breaks = seq(.3,.6, 0.1),position = "right")+
+    scale_shape_manual(values = c("SSP2-4.5" = 19, "SSP5-8.5" = 17))+
+    labs(y = "", x="", title = "(B)")+
+    scale_y_continuous(expand = c(0,0), limits = c(.2,.8), breaks = seq(.2,.8, 0.1),position = "right")+
     theme_classic(base_size = 10)+
     theme(legend.position = "", 
           panel.background = element_rect(fill = "transparent", colour = NA),
           plot.background = element_rect(fill = "transparent"),
-          axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1), 
+          axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1),
+          axis.line.y = element_blank(),
+          axis.text.y = element_blank(),
+          axis.ticks.y = element_blank(),
           panel.border = element_blank(), 
           axis.line = element_line(linewidth = .1), 
-          axis.ticks = element_line(linewidth = .1)))
+          axis.ticks.x = element_line(linewidth = .1)))
 #plt1 + annotation_custom(ggplotGrob(plt2), xmin = 1, xmax = 14, ymin = .5, ymax = .79)
 plt2+plt3+plot_layout(ncol = 2, widths = c(5,1))
-ggsave("3_RiskResidual.png", dpi = 1200, height = 4, width = 8)
+ggsave("3_Outputs/plots/3_RiskResidual.png", dpi = 1200, height = 4, width = 8)
 
 
 dfRisk %>% ggplot() + geom_point(aes(x = (TEV/1e6), y = rr.ssp585))

@@ -257,23 +257,23 @@ rr.pr585 <- stack(paste0(lfs.dir, "CLIM-CCVA/pr585_ESM25km.nc")); rr.pr585<- cro
 #     theme(axis.text.x = element_text(angle = 0)) + 
 #     scale_x_continuous(name = "Calendar year", breaks = seq(1970, 2100, 10), expand = c(0, 0)))
 #freq
-R10p.ssp126.2050 <- R10Freq(r=rr.pr126, nYears=30, baseR=rr.prHist, p=.1, pn="near") %>% mask(., wio.ISO3); names(R10p.ssp126.2050)<-"R10p.ssp126.2050"
-R10p.ssp126.2100 <- R10Freq(r=rr.pr126, nYears=30, baseR=rr.prHist, p=.1, pn="far") %>% mask(., wio.ISO3); names(R10p.ssp126.2100)<-"R10p.ssp126.2100"
-R10p.ssp245.2050 <- R10Freq(r=rr.pr245, nYears=30, baseR=rr.prHist, p=.1, pn="near") %>% mask(., wio.ISO3); names(R10p.ssp245.2050)<-"R10p.ssp245.2050"
-R10p.ssp245.2100 <- R10Freq(r=rr.pr245, nYears=30, baseR=rr.prHist, p=.1, pn="far") %>% mask(., wio.ISO3); names(R10p.ssp245.2100)<-"R10p.ssp245.2100"
-R10p.ssp370.2050 <- R10Freq(r=rr.pr370, nYears=30, baseR=rr.prHist, p=.1, pn="near") %>% mask(., wio.ISO3); names(R10p.ssp370.2050)<-"R10p.ssp370.2050"
-R10p.ssp370.2100 <- R10Freq(r=rr.pr370, nYears=30, baseR=rr.prHist, p=.1, pn="far") %>% mask(., wio.ISO3); names(R10p.ssp370.2100)<-"R10p.ssp370.2100"
-R10p.ssp585.2050 <- R10Freq(r=rr.pr585, nYears=30, baseR=rr.prHist, p=.1, pn="near") %>% mask(., wio.ISO3); names(R10p.ssp585.2050)<-"R10p.ssp585.2050"
-R10p.ssp585.2100 <- R10Freq(r=rr.pr585, nYears=30, baseR=rr.prHist, p=.1, pn="far") %>% mask(., wio.ISO3); names(R10p.ssp585.2100)<-"R10p.ssp585.2100"
+r95p.ssp126.2050 <- r95Freq(r=rr.pr126, nYears=30, baseR=rr.prHist, p=.95, pn="near") %>% mask(., wio.ISO3); names(r95p.ssp126.2050)<-"r95p.ssp126.2050"
+r95p.ssp126.2100 <- r95Freq(r=rr.pr126, nYears=30, baseR=rr.prHist, p=.95, pn="far") %>% mask(., wio.ISO3); names(r95p.ssp126.2100)<-"r95p.ssp126.2100"
+r95p.ssp245.2050 <- r95Freq(r=rr.pr245, nYears=30, baseR=rr.prHist, p=.95, pn="near") %>% mask(., wio.ISO3); names(r95p.ssp245.2050)<-"r95p.ssp245.2050"
+r95p.ssp245.2100 <- r95Freq(r=rr.pr245, nYears=30, baseR=rr.prHist, p=.95, pn="far") %>% mask(., wio.ISO3); names(r95p.ssp245.2100)<-"r95p.ssp245.2100"
+r95p.ssp370.2050 <- r95Freq(r=rr.pr370, nYears=30, baseR=rr.prHist, p=.95, pn="near") %>% mask(., wio.ISO3); names(r95p.ssp370.2050)<-"r95p.ssp370.2050"
+r95p.ssp370.2100 <- r95Freq(r=rr.pr370, nYears=30, baseR=rr.prHist, p=.95, pn="far") %>% mask(., wio.ISO3); names(r95p.ssp370.2100)<-"r95p.ssp370.2100"
+r95p.ssp585.2050 <- r95Freq(r=rr.pr585, nYears=30, baseR=rr.prHist, p=.95, pn="near") %>% mask(., wio.ISO3); names(r95p.ssp585.2050)<-"r95p.ssp585.2050"
+r95p.ssp585.2100 <- r95Freq(r=rr.pr585, nYears=30, baseR=rr.prHist, p=.95, pn="far") %>% mask(., wio.ISO3); names(r95p.ssp585.2100)<-"r95p.ssp585.2100"
 #Intensity
-R10Int.ssp126.2050 <- R10IntFUN(r=rr.pr126, nYears=30, baseR=rr.prHist, p=.1, pn="near") %>% mask(., wio.ISO3); names(R10Int.ssp126.2050)<-"R10Int.ssp126.2050"
-R10Int.ssp126.2100 <- R10IntFUN(r=rr.pr126, nYears=30, baseR=rr.prHist, p=.1, pn="far") %>% mask(., wio.ISO3); names(R10Int.ssp126.2100)<-"R10Int.ssp126.2100"
-R10Int.ssp245.2050 <- R10IntFUN(r=rr.pr245, nYears=30, baseR=rr.prHist, p=.1, pn="near") %>% mask(., wio.ISO3); names(R10Int.ssp245.2050)<-"R10Int.ssp245.2050"
-R10Int.ssp245.2100 <- R10IntFUN(r=rr.pr245, nYears=30, baseR=rr.prHist, p=.1, pn="far") %>% mask(., wio.ISO3); names(R10Int.ssp245.2100)<-"R10Int.ssp245.2100"
-R10Int.ssp370.2050 <- R10IntFUN(r=rr.pr370, nYears=30, baseR=rr.prHist, p=.1, pn="near") %>% mask(., wio.ISO3); names(R10Int.ssp370.2050)<-"R10Int.ssp370.2050"
-R10Int.ssp370.2100 <- R10IntFUN(r=rr.pr370, nYears=30, baseR=rr.prHist, p=.1, pn="far") %>% mask(., wio.ISO3); names(R10Int.ssp370.2100)<-"R10Int.ssp370.2100"
-R10Int.ssp585.2050 <- R10IntFUN(r=rr.pr585, nYears=30, baseR=rr.prHist, p=.1, pn="near") %>% mask(., wio.ISO3); names(R10Int.ssp585.2050)<-"R10Int.ssp585.2050"
-R10Int.ssp585.2100 <- R10IntFUN(r=rr.pr585, nYears=30, baseR=rr.prHist, p=.1, pn="far") %>% mask(., wio.ISO3); names(R10Int.ssp585.2100)<-"R10Int.ssp585.2100"
+r95Int.ssp126.2050 <- r95IntFUN(r=rr.pr126, nYears=30, baseR=rr.prHist, p=.95, pn="near") %>% mask(., wio.ISO3); names(r95Int.ssp126.2050)<-"r95Int.ssp126.2050"
+r95Int.ssp126.2100 <- r95IntFUN(r=rr.pr126, nYears=30, baseR=rr.prHist, p=.95, pn="far") %>% mask(., wio.ISO3); names(r95Int.ssp126.2100)<-"r95Int.ssp126.2100"
+r95Int.ssp245.2050 <- r95IntFUN(r=rr.pr245, nYears=30, baseR=rr.prHist, p=.95, pn="near") %>% mask(., wio.ISO3); names(r95Int.ssp245.2050)<-"r95Int.ssp245.2050"
+r95Int.ssp245.2100 <- r95IntFUN(r=rr.pr245, nYears=30, baseR=rr.prHist, p=.95, pn="far") %>% mask(., wio.ISO3); names(r95Int.ssp245.2100)<-"r95Int.ssp245.2100"
+r95Int.ssp370.2050 <- r95IntFUN(r=rr.pr370, nYears=30, baseR=rr.prHist, p=.95, pn="near") %>% mask(., wio.ISO3); names(r95Int.ssp370.2050)<-"r95Int.ssp370.2050"
+r95Int.ssp370.2100 <- r95IntFUN(r=rr.pr370, nYears=30, baseR=rr.prHist, p=.95, pn="far") %>% mask(., wio.ISO3); names(r95Int.ssp370.2100)<-"r95Int.ssp370.2100"
+r95Int.ssp585.2050 <- r95IntFUN(r=rr.pr585, nYears=30, baseR=rr.prHist, p=.95, pn="near") %>% mask(., wio.ISO3); names(r95Int.ssp585.2050)<-"r95Int.ssp585.2050"
+r95Int.ssp585.2100 <- r95IntFUN(r=rr.pr585, nYears=30, baseR=rr.prHist, p=.95, pn="far") %>% mask(., wio.ISO3); names(r95Int.ssp585.2100)<-"r95Int.ssp585.2100"
 #Slope
 #To calculate total annual precipitation, sum monthly precipitation values and divide by 30 years. Next multiply by 86400 to convert from 
 #kg/m3/s to mm/year
@@ -286,19 +286,19 @@ TAP.ssp370.2100 <- (slpFUN(rr.pr370[[673:1032]])*86400) %>% mask(., wio.ISO3); n
 TAP.ssp585.2050 <- (slpFUN(rr.pr585[[73:432]])*86400) %>% mask(., wio.ISO3); names(TAP.ssp585.2050) <- "dTAP.ssp585.2050"
 TAP.ssp585.2100 <- (slpFUN(rr.pr585[[673:1032]])*86400) %>% mask(., wio.ISO3); names(TAP.ssp585.2100) <- "dTAP.ssp585.2100"
 if (require(ncdf4)) {
-  rnc <- raster::writeRaster(stack((R10p.ssp126.2050),(R10p.ssp126.2100),
-                                   (R10p.ssp245.2050),(R10p.ssp245.2100),
-                                   (R10p.ssp370.2050),(R10p.ssp370.2100),
-                                   (R10p.ssp585.2050),(R10p.ssp585.2100)),
-                             filename=file.path("2_Data/raster/wio_esm_r10p.nc"), format="CDF", overwrite=TRUE)
+  rnc <- raster::writeRaster(stack((r95p.ssp126.2050),(r95p.ssp126.2100),
+                                   (r95p.ssp245.2050),(r95p.ssp245.2100),
+                                   (r95p.ssp370.2050),(r95p.ssp370.2100),
+                                   (r95p.ssp585.2050),(r95p.ssp585.2100)),
+                             filename=file.path("2_Data/raster/wio_esm_r95p.nc"), format="CDF", overwrite=TRUE)
 }
 
 if (require(ncdf4)) {
-  rnc <- raster::writeRaster(stack((R10Int.ssp126.2050),(R10Int.ssp126.2100),
-                                   (R10Int.ssp245.2050),(R10Int.ssp245.2100),
-                                   (R10Int.ssp370.2050),(R10Int.ssp370.2100),
-                                   (R10Int.ssp585.2050),(R10Int.ssp585.2100)),
-                             filename=file.path("2_Data/raster/wio_esm_r10Int.nc"), format="CDF", overwrite=TRUE)
+  rnc <- raster::writeRaster(stack((r95Int.ssp126.2050),(r95Int.ssp126.2100),
+                                   (r95Int.ssp245.2050),(r95Int.ssp245.2100),
+                                   (r95Int.ssp370.2050),(r95Int.ssp370.2100),
+                                   (r95Int.ssp585.2050),(r95Int.ssp585.2100)),
+                             filename=file.path("2_Data/raster/wio_esm_r95Int.nc"), format="CDF", overwrite=TRUE)
 }
 
 if (require(ncdf4)) {
