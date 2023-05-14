@@ -1,44 +1,21 @@
-
-# normalize <- function(x) {
-#   x = x + min(x, na.rm = TRUE)
-#   return((x- min(x, na.rm = TRUE)) /(max(x, na.rm = TRUE)-min(x, na.rm = TRUE)))
-# }
-
+#Some key functions
 norm_scale = scales::rescale
 #https://gist.github.com/variani/d6a42ac64f05f8ed17e6c9812df5492b
-inormal <- function(x) scales::rescale(qnorm((rank(x, na.last = "keep") - 0.5) / sum(!is.na(x))))
-qtrans <- function(rr, nm){
-  df <- rr[, c("x","y",nm)]
-  
-  #Quantile normalisation
-  df$score <- qnorm((rank(df[[nm]], na.last = "keep") - 0.5) / sum(!is.na(df[[nm]])))
-  df$std_id <- norm_scale(df[, "score"])
-  #Spatialise
-  rr <- rasterFromXYZ(df[,c("x","y","std_id")])
-  crs(rr) <- "+proj=longlat"
-  return(rr)
+inormal <- function(x) {
+  qrank <- ((rank(x, na.last = "keep") - 0.5) / sum(!is.na(x)))
+  z_score <- scales::rescale(sqrt(2)*pracma::erfinv(2*qrank-1))
+  return(z_score)
 }
 
-r_rescale <- function(df, var){
+qtrans <- function(df, var){
   #Quantile normalisation
-  df$score <- (rank(df[[var]], na.last = "keep") - 0.5) / sum(!is.na(df[[var]]))
+  df$score <- ((rank(df[[var]], na.last = "keep") - 0.5) / sum(!is.na(df[[var]])))
   df$z_score <- scales::rescale(sqrt(2)*pracma::erfinv(2*df[,"score"]-1))
   #Spatialise
   rr <- rasterFromXYZ(df[,c("x","y","z_score")])
   crs(rr) <- "+proj=longlat"
   return(rr)
 }
-
-r_rescale_qn <- function(df, x){
-  #Quantile normalisation
-  output <- suppressWarnings(bestNormalize::orderNorm(df[,x]))
-  std_id <- scales::rescale(output$x.t)
-    return(std_id)
- }
-
-
-
-
 
 #Slope/Trends
 slpFUN = function(k) {

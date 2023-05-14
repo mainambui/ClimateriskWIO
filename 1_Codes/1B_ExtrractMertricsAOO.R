@@ -11,20 +11,19 @@ wio.AOO.spdf <- st_as_sf(wio.AOO, coords=c('x', 'y'), crs="+proj=longlat")
 wio.ISO3 <- st_read("2_Data/shp/country_shape.shp") %>% st_as_sf() %>% st_transform(crs = "+proj=longlat")
 
 #LOAD METRICS
-clim.nc <- list.files("./2_Data/raster", pattern='*.nc',full.names=TRUE)[-c(1,2,3)]
+clim.nc <- list.files("./2_Data/raster", pattern='*.nc',full.names=TRUE)[-c(1)]
 hazard.stk <- stack(clim.nc);N <- nlayers(hazard.stk)
 df.hzd <- as.data.frame(hazard.stk, xy =TRUE)
 #Quantile transform
 m1 = paste("variable", seq(1,N,1), sep = ".")
-rr <- lapply(1:length(m1), function(x){r_rescale(df.hzd, m1[[x]])})
+rr <- lapply(1:length(m1), function(x){qtrans(df.hzd, m1[[x]])})
 rr <- stack(rr);plot(rr)
 
-hzd.aoo <- extract(rr, wio.AOO.spdf, sp=TRUE,df=TRUE) %>% as.data.frame()
+hzd.aoo <- raster::extract(rr, wio.AOO.spdf, sp=TRUE,df=TRUE) %>% as.data.frame()
 colnames(hzd.aoo)[colnames(hzd.aoo) == "coords.x1"] <- "x"
 colnames(hzd.aoo)[colnames(hzd.aoo) == "coords.x2"] <- "y"
 n = ncol(hzd.aoo)
 hzd.aoo <- DMwR2::knnImputation(hzd.aoo[2:n], k = 3)
-
 
 m2 = paste("z_score", seq(1,N,1), sep = ".")
 rr.aoo <- lapply(1:length(m2), function(x){raster::rasterFromXYZ(hzd.aoo[,c("x","y",m2[[x]])])})
@@ -35,7 +34,7 @@ crs(rr.aoo) <- "+proj=longlat"
 # Average across metrics
 index <- rep(1:8, times=nlayers(rr.aoo)/8)#8=4 ssps * 2 periods
 #mean (MN)
-mn_stk <- stackApply(rr.aoo, indices=index, fun=mean, na.rm=TRUE)
+mn_stk <- stackApply(rr.aoo, indices=index, fun=median, na.rm=TRUE)
 names(mn_stk) <- c("hzd.mn.ssp126.2050","hzd.mn.ssp126.2100",
                    "hzd.mn.ssp245.2050","hzd.mn.ssp245.2100",
                    "hzd.mn.ssp370.2050","hzd.mn.ssp370.2100",
@@ -49,7 +48,7 @@ names(sd_stk) <- c("hzd.sd.ssp126.2050","hzd.sd.ssp126.2100","hzd.sd.ssp245.2050
 plot(sd_stk)
 
 # climdata <- climdata %>% mutate(dplyr::across(4:94,~ norm_scale(inormal2(.x))))
-climdata <- extract(stack(mn_stk, sd_stk), wio.AOO.spdf, sp=TRUE, df=TRUE) %>% as.data.frame()
+climdata <- raster::extract(stack(mn_stk, sd_stk), wio.AOO.spdf, sp=TRUE, df=TRUE) %>% as.data.frame()
 colnames(climdata)[colnames(climdata) == "coords.x1"] <- "x"
 colnames(climdata)[colnames(climdata) == "coords.x2"] <- "y"
 
