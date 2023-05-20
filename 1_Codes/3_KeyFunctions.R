@@ -1,18 +1,40 @@
 #Some key functions
 norm_scale = scales::rescale
+
 #https://gist.github.com/variani/d6a42ac64f05f8ed17e6c9812df5492b
+#inormal <- function(x) qnorm((rank(x, na.last = "keep") - 0.5) / sum(!is.na(x)))
 inormal <- function(x) {
-  qrank <- ((rank(x, na.last = "keep") - 0.5) / sum(!is.na(x)))
-  z_score <- scales::rescale(sqrt(2)*pracma::erfinv(2*qrank-1))
+  qrank <- ((rank(x, na.last = TRUE, ties.method= "random") - 0.5) / sum(!is.na(x)))
+  z_score <- norm_scale(sqrt(2)*pracma::erfinv(2*qrank-1))
   return(z_score)
 }
 
-qtrans <- function(df, var){
+quant_transform <- function(df, var){
+  mn <- min(df[[var]], na.rm = TRUE)
+  if (mn<0) {
+    df[[var]] <- df[[var]]+abs(mn)
+  }else{df[[var]] <- df[[var]]}
   #Quantile normalisation
-  df$score <- ((rank(df[[var]], na.last = "keep") - 0.5) / sum(!is.na(df[[var]])))
-  df$z_score <- scales::rescale(sqrt(2)*pracma::erfinv(2*df[,"score"]-1))
+  df$score <- ((rank(df[[var]], na.last = TRUE, ties.method= "random") - 0.5) / sum(!is.na(df[[var]])))
+  df$score <- norm_scale(sqrt(2)*pracma::erfinv(2*df[,"score"]-1))
+  #Spatialize
+  rr <- rasterFromXYZ(df[,c("x","y","score")])
+  names(rr) <- paste0(var)
+  crs(rr) <- "+proj=longlat"
+  return(rr)
+}
+
+
+rs_min_max <- function(df, var){
+  mn <- min(df[[var]], na.rm = TRUE)
+  if (mn<0) {
+    df[[var]] <- df[[var]]+abs(mn)
+  }else{df[[var]] <- df[[var]]}
+
+  df$score <- norm_scale(df[[var]])
   #Spatialise
-  rr <- rasterFromXYZ(df[,c("x","y","z_score")])
+  rr <- rasterFromXYZ(df[,c("x","y","score")])
+  names(rr) <- paste0(var)
   crs(rr) <- "+proj=longlat"
   return(rr)
 }
