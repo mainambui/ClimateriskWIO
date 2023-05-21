@@ -79,8 +79,6 @@ df <- rbind(data.frame(sce = "SSP2-4.5", MN = df$mn.245, LL = df$mn.245-df$sd.24
 plt2+plt3+plot_layout(ncol = 2, widths = c(5,1))
 ggsave("3_Outputs/plots/3_RiskResidual.png", dpi = 1200, height = 4, width = 8)
 
-
-
 ###################################################################################################################
 #                     ECONOMIC VALUATION APPROACHES
 ##################################################################################################################
@@ -156,4 +154,5 @@ library(patchwork)
 plt1+plt2+plot_layout(ncol = 2)
 #ggsave("outputs/xx1.png", width = 5.5, height = 4, dpi = 1200)
 
-
+dfRisk$ld_ssp585 = dfRisk$TEV*dfRisk$rr.ssp585
+summary(dfRisk$ld_ssp585)
