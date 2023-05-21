@@ -9,70 +9,9 @@ I_Ctrl <- read_csv("2_Data/sheet/ImpactControl.csv")
 dfRisk <- merge(dfRisk, I_Ctrl, by.x = "ISO3")
 plot(dfRisk$AdaptiveCapacity, exp(-dfRisk$ic2020))
 
-df <- rbind(data.frame(sce = "SSP2-4.5", impact = dfRisk$imp.ssp245.2050, vulnerab = dfRisk$Sensitivity/dfRisk$AdaptiveCapacity, village = dfRisk$Villages, ISO3 = dfRisk$ISO3),
-            data.frame(sce = "SSP3-7.0", impact = dfRisk$imp.ssp370.2050, vulnerab = dfRisk$Sensitivity/dfRisk$AdaptiveCapacity, village = dfRisk$Villages, ISO3 = dfRisk$ISO3))
-yR <- range(df$impact);xR <- range(df$vulnerab)
-lgd <- expand.grid(x = seq(xR[1],xR[2], diff(xR)/100), 
-                   y = seq(yR[1],yR[2], diff(yR)/100)) %>% 
-  mutate(x1 = scales::rescale(x),
-         y1 = scales::rescale(y),
-         mix = rgb(y1,x1,.5))
-# Q1 <- summary(df$impact)[[2]] #first quartile
-# Q3 <- summary(df$impact)[[5]] #third quartile
-# MdV <- median(df$vulnerab)
-(plt1 <- ggplot()+
-    
-    # geom_rect(aes(fill = "LL", xmin = -Inf, xmax = MdV, ymin = -Inf, ymax = Q1), show.legend = FALSE)+
-    # geom_rect(aes(fill = "ML", xmin = -Inf, xmax = MdV, ymin = Q1, ymax = Q3), show.legend = FALSE)+
-    # geom_rect(aes(fill = "HL", xmin = -Inf, xmax = MdV, ymin = Q3, ymax = Inf), show.legend = FALSE)+
-    # geom_rect(aes(fill = "LH", xmin = MdV, xmax = Inf, ymin = -Inf, ymax = Q1), show.legend = FALSE)+
-    # geom_rect(aes(fill = "MH", xmin = MdV, xmax = Inf, ymin = Q1, ymax = Q3), show.legend = FALSE)+
-    # geom_rect(aes(fill = "HH", xmin = MdV, xmax = Inf, ymin = Q3, ymax = Inf), show.legend = FALSE)+
-    # scale_fill_manual(values = c("LL"="#595757","ML"="#806587","HL"="#A874B8",
-    #                             "LH"="#468C38","MH"="#8CA289","HH"="#D3B9DB")) +
-    geom_raster(data = lgd, aes(x = x, y = y, fill = mix))+
-    scale_fill_identity()+
-    geom_point(data = df, aes(x = vulnerab, y = impact, colour = ISO3, shape=sce), size = 1.5) +
-    labs(y = "Climate change impacts", x = "", title = "Risk Space")+
-    scale_colour_manual(name="", values = c("KEN"="darkred","MDG"="yellow","MOZ"="dodgerblue4","TZA"="grey50"))+
-    theme_bw(base_size = 10)+
-    scale_x_continuous(expand = c(0,0))+scale_y_continuous(expand = c(0,0))+
-    scale_shape_manual(values = c("SSP2-4.5" = 19, "SSP3-7.0" = 17))+
-    #geom_vline(xintercept = median(df$vulnerab, na.rm = TRUE), linetype = 2, linewidth = .5, colour = "grey80")+
-    theme(legend.position = "bottom",
-          legend.title = element_blank(),
-          legend.background = element_rect(fill = NA),
-          legend.key.size = unit(1, 'cm'),
-          legend.text = element_text(size = 2),
-          legend.key.height = unit(.1, 'cm'),
-          legend.key.width = unit(.1, 'cm'), 
-          
-          panel.border = element_blank()))
-
-(plt2 <- ggplot()+
-    # geom_rect(aes(fill = "LL", xmin = -Inf, xmax = MdV, ymin = -Inf, ymax = Q1), show.legend = FALSE)+
-    # geom_rect(aes(fill = "ML", xmin = -Inf, xmax = MdV, ymin = Q1, ymax = Q3), show.legend = FALSE)+
-    # geom_rect(aes(fill = "HL", xmin = -Inf, xmax = MdV, ymin = Q3, ymax = Inf), show.legend = FALSE)+
-    # geom_rect(aes(fill = "LH", xmin = MdV, xmax = Inf, ymin = -Inf, ymax = Q1), show.legend = FALSE)+
-    # geom_rect(aes(fill = "MH", xmin = MdV, xmax = Inf, ymin = Q1, ymax = Q3), show.legend = FALSE)+
-    # geom_rect(aes(fill = "HH", xmin = MdV, xmax = Inf, ymin = Q3, ymax = Inf), show.legend = FALSE)+
-    # scale_fill_manual(values = c("LL"="#595757","ML"="#806587","HL"="#A874B8","LH"="#468C38","MH"="#8CA289","HH"="#D3B9DB")) +
-    geom_raster(data = lgd, aes(x = x, y = y, fill = mix))+
-    scale_fill_identity()+
-    
-    geom_point(data = df, aes(x = vulnerab, y = impact), alpha = 0) +
-    labs(y = "", x = "", title = "Options Space")+
-    scale_y_continuous(breaks = c(.3, .43, .55), labels = c("Low", "Medium", "High") , position = "right", expand = c(0,0))+
-    scale_x_continuous(breaks = c(1.02, 1.3), labels = c("Low","High"), expand = c(0,0))+
-    theme_bw(base_size = 10)+
-    theme(axis.text.y = element_text(angle = 90),
-          axis.ticks = element_blank(), 
-          panel.border = element_blank()))
-
-library(patchwork)
-plt1+plt2+plot_layout(ncol = 2)
-#ggsave("outputs/xx1.png", width = 5.5, height = 4, dpi = 1200)
-
+##############################################################################################################################
+#                                 Estimate potential residual risk and plot difference among villages
+#############################################################################################################################
 dfRisk<- dfRisk %>% mutate(rr.ssp585 = ((imp.ssp370.2050*Sensitivity)/AdaptiveCapacity)*exp(-ic2020),
                            rr.ssp245 = ((imp.ssp245.2050*Sensitivity)/AdaptiveCapacity)*exp(-ic2020))
 df <- rbind(data.frame(sce = "SSP2-4.5", risk = (dfRisk$rr.ssp245), village = dfRisk$Villages, ISO3 = dfRisk$ISO3),
@@ -141,5 +80,80 @@ plt2+plt3+plot_layout(ncol = 2, widths = c(5,1))
 ggsave("3_Outputs/plots/3_RiskResidual.png", dpi = 1200, height = 4, width = 8)
 
 
-dfRisk %>% ggplot() + geom_point(aes(x = (TEV/1e6), y = rr.ssp585))
-dfRisk %>% ggplot() + geom_point(aes(x = (TEV/1e6), y = imp.ssp370.2050))
+
+###################################################################################################################
+#                     ECONOMIC VALUATION APPROACHES
+##################################################################################################################
+#Import value coefficients
+econValues <- readxl::read_excel("2_Data/sheet/4_EconomicValuations/EcosystemServiceValueCoefficients.xlsx", sheet = "mini")
+dfRisk <- merge(dfRisk, econValues, by.x = "ISO3")
+#Find total economic value
+dfRisk$TEV = ((dfRisk$corals*dfRisk$CoralsVal)+(dfRisk$seagrass*dfRisk$SeagrassVal)+(dfRisk$mangrove*dfRisk$MangroveVal)+(dfRisk$cropcover*dfRisk$CropsVal))/1e4 #divide by 10000 to convert from meters to hectares
+plot(dfRisk$TEV/1e6, dfRisk$rr.ssp585)
+
+#Plot Options Spaces based on residual risk and 
+df <- rbind(data.frame(sce = "SSP2-4.5", risk = dfRisk$rr.ssp245, TEV = dfRisk$TEV/1e6, village = dfRisk$Villages, ISO3 = dfRisk$ISO3),
+            data.frame(sce = "SSP5-8.5", risk = dfRisk$rr.ssp585, TEV = dfRisk$TEV/1e6, village = dfRisk$Villages, ISO3 = dfRisk$ISO3))
+yR <- range(df$risk);xR <- range(df$TEV)
+lgd <- expand.grid(x = seq(xR[1],xR[2], diff(xR)/100), 
+                   y = seq(yR[1],yR[2], diff(yR)/100)) %>% 
+  mutate(x1 = scales::rescale(x),
+         y1 = scales::rescale(y),
+         mix = rgb(y1,.5,x1))
+# Q1 <- summary(df$risk)[[2]] #first quartile
+# Q3 <- summary(df$risk)[[5]] #third quartile
+# MdV <- median(df$vulnerab)
+(plt1 <- ggplot()+
+    
+    # geom_rect(aes(fill = "LL", xmin = -Inf, xmax = MdV, ymin = -Inf, ymax = Q1), show.legend = FALSE)+
+    # geom_rect(aes(fill = "ML", xmin = -Inf, xmax = MdV, ymin = Q1, ymax = Q3), show.legend = FALSE)+
+    # geom_rect(aes(fill = "HL", xmin = -Inf, xmax = MdV, ymin = Q3, ymax = Inf), show.legend = FALSE)+
+    # geom_rect(aes(fill = "LH", xmin = MdV, xmax = Inf, ymin = -Inf, ymax = Q1), show.legend = FALSE)+
+    # geom_rect(aes(fill = "MH", xmin = MdV, xmax = Inf, ymin = Q1, ymax = Q3), show.legend = FALSE)+
+    # geom_rect(aes(fill = "HH", xmin = MdV, xmax = Inf, ymin = Q3, ymax = Inf), show.legend = FALSE)+
+    # scale_fill_manual(values = c("LL"="#595757","ML"="#806587","HL"="#A874B8",
+    #                             "LH"="#468C38","MH"="#8CA289","HH"="#D3B9DB")) +
+    geom_raster(data = lgd, aes(x = x, y = y, fill = mix))+
+    scale_fill_identity()+
+    geom_point(data = df, aes(x = TEV, y = risk, colour = ISO3, shape=sce), size = 1.5) +
+    labs(y = "Climate change impacts", x = "", title = "Risk Space")+
+    scale_colour_manual(name="", values = c("KEN"="darkred","MDG"="yellow","MOZ"="dodgerblue4","TZA"="grey50"))+
+    theme_bw(base_size = 10)+
+    scale_x_continuous(expand = c(0,0))+scale_y_continuous(expand = c(0,0))+
+    scale_shape_manual(values = c("SSP2-4.5" = 19, "SSP5-8.5" = 17))+
+    #geom_vline(xintercept = median(df$vulnerab, na.rm = TRUE), linetype = 2, linewidth = .5, colour = "grey80")+
+    theme(legend.position = "bottom",
+          legend.title = element_blank(),
+          legend.background = element_rect(fill = NA),
+          legend.key.size = unit(1, 'cm'),
+          legend.text = element_text(size = 2),
+          legend.key.height = unit(.1, 'cm'),
+          legend.key.width = unit(.1, 'cm'), 
+          
+          panel.border = element_blank()))
+# 
+# (plt2 <- ggplot()+
+#     # geom_rect(aes(fill = "LL", xmin = -Inf, xmax = MdV, ymin = -Inf, ymax = Q1), show.legend = FALSE)+
+#     # geom_rect(aes(fill = "ML", xmin = -Inf, xmax = MdV, ymin = Q1, ymax = Q3), show.legend = FALSE)+
+#     # geom_rect(aes(fill = "HL", xmin = -Inf, xmax = MdV, ymin = Q3, ymax = Inf), show.legend = FALSE)+
+#     # geom_rect(aes(fill = "LH", xmin = MdV, xmax = Inf, ymin = -Inf, ymax = Q1), show.legend = FALSE)+
+#     # geom_rect(aes(fill = "MH", xmin = MdV, xmax = Inf, ymin = Q1, ymax = Q3), show.legend = FALSE)+
+#     # geom_rect(aes(fill = "HH", xmin = MdV, xmax = Inf, ymin = Q3, ymax = Inf), show.legend = FALSE)+
+#     # scale_fill_manual(values = c("LL"="#595757","ML"="#806587","HL"="#A874B8","LH"="#468C38","MH"="#8CA289","HH"="#D3B9DB")) +
+#     geom_raster(data = lgd, aes(x = x, y = y, fill = mix))+
+#     scale_fill_identity()+
+#     
+#     geom_point(data = df, aes(x = vulnerab, y = impact), alpha = 0) +
+#     labs(y = "", x = "", title = "Options Space")+
+#     scale_y_continuous(breaks = c(.3, .43, .55), labels = c("Low", "Medium", "High") , position = "right", expand = c(0,0))+
+#     scale_x_continuous(breaks = c(1.02, 1.3), labels = c("Low","High"), expand = c(0,0))+
+#     theme_bw(base_size = 10)+
+#     theme(axis.text.y = element_text(angle = 90),
+#           axis.ticks = element_blank(), 
+#           panel.border = element_blank()))
+
+library(patchwork)
+plt1+plt2+plot_layout(ncol = 2)
+#ggsave("outputs/xx1.png", width = 5.5, height = 4, dpi = 1200)
+
+
