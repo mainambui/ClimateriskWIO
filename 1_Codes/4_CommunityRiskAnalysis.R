@@ -12,10 +12,11 @@ plot(dfRisk$AdaptiveCapacity, exp(-dfRisk$ic2020))
 ##############################################################################################################################
 #                                 Estimate potential residual risk and plot difference among villages
 #############################################################################################################################
-dfRisk<- dfRisk %>% mutate(rr.ssp585 = ((imp.ssp370.2050*Sensitivity)/AdaptiveCapacity)*exp(-ic2020),
+dfRisk<- dfRisk %>% mutate(rr.ssp585 = ((imp.ssp585.2050*Sensitivity)/AdaptiveCapacity)*exp(-ic2020),
+                           rr.ssp370 = ((imp.ssp370.2050*Sensitivity)/AdaptiveCapacity)*exp(-ic2020),
                            rr.ssp245 = ((imp.ssp245.2050*Sensitivity)/AdaptiveCapacity)*exp(-ic2020))
 df <- rbind(data.frame(sce = "SSP2-4.5", risk = (dfRisk$rr.ssp245), village = dfRisk$Villages, ISO3 = dfRisk$ISO3),
-            data.frame(sce = "SSP5-8.5", risk = (dfRisk$rr.ssp585), village = dfRisk$Villages, ISO3 = dfRisk$ISO3))
+            data.frame(sce = "SSP5-8.5", risk = (dfRisk$rr.ssp370), village = dfRisk$Villages, ISO3 = dfRisk$ISO3))
 Q1 <- summary(df$risk)[[2]] #first quartile
 Q3 <- summary(df$risk)[[5]] #third quartile
 (plt2 <- ggplot(data = df)+
@@ -39,21 +40,21 @@ Q3 <- summary(df$risk)[[5]] #third quartile
 
 #Plots bars for each country
 df1 <- dfRisk %>% group_by(ISO3) %>% 
-  summarise(mn.585 = mean(rr.ssp585),
-            sd.585 = sd(rr.ssp585),
+  summarise(mn.370 = mean(rr.ssp370),
+            sd.370 = sd(rr.ssp370),
             mn.245 = mean(rr.ssp245),
             sd.245 = sd(rr.ssp245)) %>% ungroup()
 
 df2 <- dfRisk %>% 
-  summarise(mn.585 = mean(rr.ssp585),
-            sd.585 = sd(rr.ssp585),
+  summarise(mn.370 = mean(rr.ssp370),
+            sd.370 = sd(rr.ssp370),
             mn.245 = mean(rr.ssp245),
             sd.245 = sd(rr.ssp245)) 
 df2 <- cbind(ISO3 = "ALL", df2)
 df <- rbind(df1, df2)
 
 df <- rbind(data.frame(sce = "SSP2-4.5", MN = df$mn.245, LL = df$mn.245-df$sd.245, UL = df$mn.245+df$sd.245, ISO3 = df$ISO3),
-            data.frame(sce = "SSP5-8.5", MN = df$mn.585, LL = df$mn.585-df$sd.585, UL = df$mn.585+df$sd.585, ISO3 = df$ISO3)) %>% group_by (ISO3) %>% mutate(sortMag = mean(MN))
+            data.frame(sce = "SSP3-7.0", MN = df$mn.370, LL = df$mn.370-df$sd.370, UL = df$mn.370+df$sd.370, ISO3 = df$ISO3)) %>% group_by (ISO3) %>% mutate(sortMag = mean(MN))
 (plt3 <- ggplot(data = df)+
     geom_rect(fill = "grey90", xmin = -Inf, xmax = Inf, ymin = -Inf, ymax = Q1)+
     geom_rect(fill = "grey80", xmin = -Inf, xmax = Inf, ymin = Q1, ymax = Q3)+
@@ -61,7 +62,7 @@ df <- rbind(data.frame(sce = "SSP2-4.5", MN = df$mn.245, LL = df$mn.245-df$sd.24
     geom_pointrange(aes(x = reorder(ISO3, sortMag), y = MN, ymin = LL, ymax = UL, colour=ISO3, shape = sce),
                     size=.1, linewidth = .2, position = position_dodge(width =.5))+
     scale_colour_manual(name="", values = c("KEN"="darkred","MDG"="yellow","MOZ"="dodgerblue4","TZA"="grey50", "ALL"="cyan"))+
-    scale_shape_manual(values = c("SSP2-4.5" = 19, "SSP5-8.5" = 17))+
+    scale_shape_manual(values = c("SSP2-4.5" = 19, "SSP3-7.0" = 17))+
     labs(y = "", x="", title = "(B)")+
     #scale_y_continuous(expand = c(0,0), limits = c(.25,.55), breaks = seq(.25,.55, 0.05),position = "right")+
     theme_classic(base_size = 10)+
@@ -76,6 +77,7 @@ df <- rbind(data.frame(sce = "SSP2-4.5", MN = df$mn.245, LL = df$mn.245-df$sd.24
           axis.line = element_line(linewidth = .1), 
           axis.ticks.x = element_line(linewidth = .1)))
 #plt1 + annotation_custom(ggplotGrob(plt2), xmin = 1, xmax = 14, ymin = .5, ymax = .79)
+library(patchwork)
 plt2+plt3+plot_layout(ncol = 2, widths = c(5,1))
 ggsave("3_Outputs/plots/3_RiskResidual.png", dpi = 1200, height = 4, width = 8)
 
@@ -91,18 +93,20 @@ plot(dfRisk$TEV/1e6, dfRisk$rr.ssp585)
 
 #Plot Options Spaces based on residual risk and 
 df <- rbind(data.frame(sce = "SSP2-4.5", risk = dfRisk$rr.ssp245, TEV = dfRisk$TEV/1e6, village = dfRisk$Villages, ISO3 = dfRisk$ISO3),
-            data.frame(sce = "SSP5-8.5", risk = dfRisk$rr.ssp585, TEV = dfRisk$TEV/1e6, village = dfRisk$Villages, ISO3 = dfRisk$ISO3))
+            data.frame(sce = "SSP3-7.0", risk = dfRisk$rr.ssp370, TEV = dfRisk$TEV/1e6, village = dfRisk$Villages, ISO3 = dfRisk$ISO3))
 yR <- range(df$risk);xR <- range(df$TEV)
+yQ1 <- summary(df$risk)[[2]] #first quartile
+yQ3 <- summary(df$risk)[[5]] #third quartile
+
+xQ1 <- summary(df$TEV)[[2]] #first quartile
+xQ3 <- summary(df$TEV)[[5]] #third quartile
+
 lgd <- expand.grid(x = seq(xR[1],xR[2], diff(xR)/100), 
                    y = seq(yR[1],yR[2], diff(yR)/100)) %>% 
-  mutate(x1 = scales::rescale(x),
-         y1 = scales::rescale(y),
+  mutate(x1 = scales::rescale(ifelse(x > xQ1, 1, ifelse(x > xQ3, 2, 3))),
+         y1 = scales::rescale(ifelse(y > yQ1, 1, ifelse(y > yQ3, 2, 3))),
          mix = rgb(y1,.5,x1))
-# Q1 <- summary(df$risk)[[2]] #first quartile
-# Q3 <- summary(df$risk)[[5]] #third quartile
-# MdV <- median(df$vulnerab)
 (plt1 <- ggplot()+
-    
     # geom_rect(aes(fill = "LL", xmin = -Inf, xmax = MdV, ymin = -Inf, ymax = Q1), show.legend = FALSE)+
     # geom_rect(aes(fill = "ML", xmin = -Inf, xmax = MdV, ymin = Q1, ymax = Q3), show.legend = FALSE)+
     # geom_rect(aes(fill = "HL", xmin = -Inf, xmax = MdV, ymin = Q3, ymax = Inf), show.legend = FALSE)+
@@ -114,45 +118,26 @@ lgd <- expand.grid(x = seq(xR[1],xR[2], diff(xR)/100),
     geom_raster(data = lgd, aes(x = x, y = y, fill = mix))+
     scale_fill_identity()+
     geom_point(data = df, aes(x = TEV, y = risk, colour = ISO3, shape=sce), size = 1.5) +
-    labs(y = "Climate change impacts", x = "", title = "Risk Space")+
+    labs(y = "Residual Climate Risk [Index]", x = "Total Economic Value (2020 US$/y)", title = "Risk Space")+
     scale_colour_manual(name="", values = c("KEN"="darkred","MDG"="yellow","MOZ"="dodgerblue4","TZA"="grey50"))+
     theme_bw(base_size = 10)+
     scale_x_continuous(expand = c(0,0))+scale_y_continuous(expand = c(0,0))+
-    scale_shape_manual(values = c("SSP2-4.5" = 19, "SSP5-8.5" = 17))+
-    #geom_vline(xintercept = median(df$vulnerab, na.rm = TRUE), linetype = 2, linewidth = .5, colour = "grey80")+
+    scale_shape_manual(values = c("SSP2-4.5" = 19, "SSP3-7.0" = 17))+
     theme(legend.position = "bottom",
           legend.title = element_blank(),
           legend.background = element_rect(fill = NA),
           legend.key.size = unit(1, 'cm'),
-          legend.text = element_text(size = 2),
+          legend.text = element_text(size = 5),
           legend.key.height = unit(.1, 'cm'),
           legend.key.width = unit(.1, 'cm'), 
           
           panel.border = element_blank()))
-# 
-# (plt2 <- ggplot()+
-#     # geom_rect(aes(fill = "LL", xmin = -Inf, xmax = MdV, ymin = -Inf, ymax = Q1), show.legend = FALSE)+
-#     # geom_rect(aes(fill = "ML", xmin = -Inf, xmax = MdV, ymin = Q1, ymax = Q3), show.legend = FALSE)+
-#     # geom_rect(aes(fill = "HL", xmin = -Inf, xmax = MdV, ymin = Q3, ymax = Inf), show.legend = FALSE)+
-#     # geom_rect(aes(fill = "LH", xmin = MdV, xmax = Inf, ymin = -Inf, ymax = Q1), show.legend = FALSE)+
-#     # geom_rect(aes(fill = "MH", xmin = MdV, xmax = Inf, ymin = Q1, ymax = Q3), show.legend = FALSE)+
-#     # geom_rect(aes(fill = "HH", xmin = MdV, xmax = Inf, ymin = Q3, ymax = Inf), show.legend = FALSE)+
-#     # scale_fill_manual(values = c("LL"="#595757","ML"="#806587","HL"="#A874B8","LH"="#468C38","MH"="#8CA289","HH"="#D3B9DB")) +
-#     geom_raster(data = lgd, aes(x = x, y = y, fill = mix))+
-#     scale_fill_identity()+
-#     
-#     geom_point(data = df, aes(x = vulnerab, y = impact), alpha = 0) +
-#     labs(y = "", x = "", title = "Options Space")+
-#     scale_y_continuous(breaks = c(.3, .43, .55), labels = c("Low", "Medium", "High") , position = "right", expand = c(0,0))+
-#     scale_x_continuous(breaks = c(1.02, 1.3), labels = c("Low","High"), expand = c(0,0))+
-#     theme_bw(base_size = 10)+
-#     theme(axis.text.y = element_text(angle = 90),
-#           axis.ticks = element_blank(), 
-#           panel.border = element_blank()))
+ggsave("3_Outputs/plots/xx1.png", width = 4, height = 4, dpi = 1200)
 
-library(patchwork)
-plt1+plt2+plot_layout(ncol = 2)
-#ggsave("outputs/xx1.png", width = 5.5, height = 4, dpi = 1200)
-
-dfRisk$ld_ssp585 = dfRisk$TEV*dfRisk$rr.ssp585
+#dfRisk$ld_ssp585 = dfRisk$TEV*dfRisk$rr.ssp585
+dfRisk$ld_ssp370 = dfRisk$TEV*dfRisk$rr.ssp370
+dfRisk$ld_ssp245 = dfRisk$TEV*dfRisk$rr.ssp245
 summary(dfRisk$ld_ssp585)
+
+dfs <- dfRisk[,c("Country","Villages","Sensitivity","AdaptiveCapacity","imp.ssp245.2050","imp.ssp370.2050","rr.ssp245", "rr.ssp370","TEV","ld_ssp245","ld_ssp370")]
+write_excel_csv(dfs, "2_Data/sheet/TableS3.csv")
