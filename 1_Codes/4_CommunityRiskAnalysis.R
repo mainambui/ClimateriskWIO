@@ -16,7 +16,7 @@ dfRisk<- dfRisk %>% mutate(rr.ssp585 = ((imp.ssp585.2050*Sensitivity)/AdaptiveCa
                            rr.ssp370 = ((imp.ssp370.2050*Sensitivity)/AdaptiveCapacity)*exp(-ic2020),
                            rr.ssp245 = ((imp.ssp245.2050*Sensitivity)/AdaptiveCapacity)*exp(-ic2020))
 df <- rbind(data.frame(sce = "SSP2-4.5", risk = (dfRisk$rr.ssp245), village = dfRisk$Villages, ISO3 = dfRisk$ISO3),
-            data.frame(sce = "SSP5-8.5", risk = (dfRisk$rr.ssp370), village = dfRisk$Villages, ISO3 = dfRisk$ISO3))
+            data.frame(sce = "SSP3-7.0", risk = (dfRisk$rr.ssp370), village = dfRisk$Villages, ISO3 = dfRisk$ISO3))
 Q1 <- summary(df$risk)[[2]] #first quartile
 Q3 <- summary(df$risk)[[5]] #third quartile
 (plt2 <- ggplot(data = df)+
@@ -28,7 +28,7 @@ Q3 <- summary(df$risk)[[5]] #third quartile
     #geom_text(aes(x=reorder(village,risk), y=risk, label = round(risk,2)), size = 2, colour = "black", fontface = "bold",position = position_dodge(width =.5))+
     labs(x = "Coastal communities", y = "Residual risk index", title = "(A)")+
     #scale_y_continuous(expand = c(0,0), limits = c(.25,.55), breaks = seq(.25,.55, 0.05))+
-    scale_shape_manual(values = c("SSP2-4.5" = 19, "SSP5-8.5" = 17))+
+    scale_shape_manual(values = c("SSP2-4.5" = 19, "SSP3-7.0" = 17))+
     theme_classic(base_size = 10)+
     scale_colour_manual(name="", values = c("KEN"="darkred","MDG"="yellow","MOZ"="dodgerblue4","TZA"="grey50"))+
     scale_fill_manual(name="", values = c("KEN"="darkred","MDG"="yellow","MOZ"="dodgerblue4","TZA"="grey50"))+
@@ -89,22 +89,21 @@ econValues <- readxl::read_excel("2_Data/sheet/4_EconomicValuations/EcosystemSer
 dfRisk <- merge(dfRisk, econValues, by.x = "ISO3")
 #Find total economic value
 dfRisk$TEV = ((dfRisk$corals*dfRisk$CoralsVal)+(dfRisk$seagrass*dfRisk$SeagrassVal)+(dfRisk$mangrove*dfRisk$MangroveVal)+(dfRisk$cropcover*dfRisk$CropsVal))/1e4 #divide by 10000 to convert from meters to hectares
-plot(dfRisk$TEV/1e6, dfRisk$rr.ssp585)
+plot(dfRisk$TEV/1e6, dfRisk$rr.ssp370)
 
 #Plot Options Spaces based on residual risk and 
 df <- rbind(data.frame(sce = "SSP2-4.5", risk = dfRisk$rr.ssp245, TEV = dfRisk$TEV/1e6, village = dfRisk$Villages, ISO3 = dfRisk$ISO3),
             data.frame(sce = "SSP3-7.0", risk = dfRisk$rr.ssp370, TEV = dfRisk$TEV/1e6, village = dfRisk$Villages, ISO3 = dfRisk$ISO3))
 yR <- range(df$risk);xR <- range(df$TEV)
+
 yQ1 <- summary(df$risk)[[2]] #first quartile
 yQ3 <- summary(df$risk)[[5]] #third quartile
-
-xQ1 <- summary(df$TEV)[[2]] #first quartile
-xQ3 <- summary(df$TEV)[[5]] #third quartile
+xQ2 <- median(df$TEV, na.rm = TRUE) #Median
 
 lgd <- expand.grid(x = seq(xR[1],xR[2], diff(xR)/100), 
                    y = seq(yR[1],yR[2], diff(yR)/100)) %>% 
-  mutate(x1 = scales::rescale(ifelse(x > xQ1, 1, ifelse(x > xQ3, 2, 3))),
-         y1 = scales::rescale(ifelse(y > yQ1, 1, ifelse(y > yQ3, 2, 3))),
+  mutate(x1 = (ifelse(x < xQ2, .25, .75)),
+         y1 = (ifelse(y < yQ1, .25, ifelse(y < yQ3, .5, .75))),
          mix = rgb(y1,.5,x1))
 (plt1 <- ggplot()+
     # geom_rect(aes(fill = "LL", xmin = -Inf, xmax = MdV, ymin = -Inf, ymax = Q1), show.legend = FALSE)+
@@ -118,26 +117,25 @@ lgd <- expand.grid(x = seq(xR[1],xR[2], diff(xR)/100),
     geom_raster(data = lgd, aes(x = x, y = y, fill = mix))+
     scale_fill_identity()+
     geom_point(data = df, aes(x = TEV, y = risk, colour = ISO3, shape=sce), size = 1.5) +
-    labs(y = "Residual Climate Risk [Index]", x = "Total Economic Value (2020 US$/y)", title = "Risk Space")+
+    labs(y = "Residual Climate Risk \n[Index]", x = "Total Economic Value \n(2020 US$/y)", title = "Risk Space")+
     scale_colour_manual(name="", values = c("KEN"="darkred","MDG"="yellow","MOZ"="dodgerblue4","TZA"="grey50"))+
-    theme_bw(base_size = 10)+
+    theme_bw(base_size = 12)+
     scale_x_continuous(expand = c(0,0))+scale_y_continuous(expand = c(0,0))+
     scale_shape_manual(values = c("SSP2-4.5" = 19, "SSP3-7.0" = 17))+
     theme(legend.position = "bottom",
           legend.title = element_blank(),
           legend.background = element_rect(fill = NA),
           legend.key.size = unit(1, 'cm'),
-          legend.text = element_text(size = 5),
+          legend.text = element_text(size = 6),
           legend.key.height = unit(.1, 'cm'),
           legend.key.width = unit(.1, 'cm'), 
           
           panel.border = element_blank()))
 ggsave("3_Outputs/plots/xx1.png", width = 4, height = 4, dpi = 1200)
 
-#dfRisk$ld_ssp585 = dfRisk$TEV*dfRisk$rr.ssp585
 dfRisk$ld_ssp370 = dfRisk$TEV*dfRisk$rr.ssp370
 dfRisk$ld_ssp245 = dfRisk$TEV*dfRisk$rr.ssp245
-summary(dfRisk$ld_ssp585)
+summary(dfRisk$ld_ssp370)
 
 dfs <- dfRisk[,c("Country","Villages","Sensitivity","AdaptiveCapacity","imp.ssp245.2050","imp.ssp370.2050","rr.ssp245", "rr.ssp370","TEV","ld_ssp245","ld_ssp370")]
 write_excel_csv(dfs, "2_Data/sheet/TableS3.csv")

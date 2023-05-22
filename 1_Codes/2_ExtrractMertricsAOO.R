@@ -3,7 +3,7 @@ rm(list = ls())
 
 library(tidyverse);library(raster);library(SearchTrees);library(sf);library(sp)
 #import some important functions
-source("1_Codes/2_KeyFunctions.R")
+source("1_Codes/3_KeyFunctions.R")
 
 #Import PU
 wio.AOO <- readRDS("2_Data/sheet/2_Ecosystems/wioAOO.wTEV.rds")
@@ -46,61 +46,46 @@ namelist <- colnames(climdata)
          std_FRic = FRic,
          std_FDiv = FDiv,
          std_FEve = FEve)%>% 
-  mutate(across(std_corals:std_Nb_sp, ~ inormal(.x)))%>% #FRic, FDiv, and FEve are already normalised variables
-  rowwise() %>%
-  mutate(
+    mutate(across(std_corals:std_Nb_sp, ~ inormal(.x)))%>% #FRic, FDiv, and FEve are already normalised variables
+    rowwise() %>%
+    mutate(
     #mean across 13 normalised climate metrics
     hzd.mn.ssp126.2050 = median(c_across(namelist[grep("_126_2050", namelist)]), na.rm=TRUE),
-    hzd.mn.ssp126.2100 = median(c_across(namelist[grep("_126_2100", namelist)]), na.rm=TRUE),
     hzd.mn.ssp245.2050 = median(c_across(namelist[grep("_245_2050", namelist)]), na.rm=TRUE),
-    hzd.mn.ssp245.2100 = median(c_across(namelist[grep("_245_2100", namelist)]), na.rm=TRUE),
     hzd.mn.ssp370.2050 = median(c_across(namelist[grep("_370_2050", namelist)]), na.rm=TRUE),
-    hzd.mn.ssp370.2100 = median(c_across(namelist[grep("_370_2100", namelist)]), na.rm=TRUE),
     hzd.mn.ssp585.2050 = median(c_across(namelist[grep("_585_2050", namelist)]), na.rm=TRUE),
-    hzd.mn.ssp585.2100 = median(c_across(namelist[grep("_585_2100", namelist)]), na.rm=TRUE),
     exp.mn.wioo = median(c_across(std_Nb_sp:std_FEve), na.rm=TRUE),
     
     #standard deviations across 13 normalised climate metrics
     hzd.sd.ssp126.2050 = sd(c_across(namelist[grep("_126_2050", namelist)]), na.rm=TRUE),
-    hzd.sd.ssp126.2100 = sd(c_across(namelist[grep("_126_2100", namelist)]), na.rm=TRUE),
     hzd.sd.ssp245.2050 = sd(c_across(namelist[grep("_245_2050", namelist)]), na.rm=TRUE),
-    hzd.sd.ssp245.2100 = sd(c_across(namelist[grep("_245_2100", namelist)]), na.rm=TRUE),
     hzd.sd.ssp370.2050 = sd(c_across(namelist[grep("_370_2050", namelist)]), na.rm=TRUE),
-    hzd.sd.ssp370.2100 = sd(c_across(namelist[grep("_370_2100", namelist)]), na.rm=TRUE),
     hzd.sd.ssp585.2050 = sd(c_across(namelist[grep("_585_2050", namelist)]), na.rm=TRUE),
-    hzd.sd.ssp585.2100 = sd(c_across(namelist[grep("_585_2100", namelist)]), na.rm=TRUE),
-    exp.sd.wioo = sd(c_across(std_Nb_sp:std_FEve), na.rm=TRUE)) %>% ungroup() %>%
+    exp.sd.wioo = sd(c_across(std_Nb_sp:std_FEve), na.rm=TRUE)) %>% 
+    ungroup() %>%
     
-  mutate(
+    mutate(
       #Deduce inverse variance weights
       wgts.Exposure = (exp.sd.wioo/exp.mn.wioo)^-1,
       wgts.ssp126.2050 = (hzd.sd.ssp126.2050/hzd.mn.ssp126.2050)^-1,
-      wgts.ssp126.2100 = (hzd.sd.ssp126.2100/hzd.mn.ssp126.2100)^-1,
       wgts.ssp245.2050 = (hzd.sd.ssp245.2050/hzd.mn.ssp245.2050)^-1,
-      wgts.ssp245.2100 = (hzd.sd.ssp245.2100/hzd.mn.ssp245.2100)^-1,
       wgts.ssp370.2050 = (hzd.sd.ssp370.2050/hzd.mn.ssp370.2050)^-1,
-      wgts.ssp370.2100 = (hzd.sd.ssp370.2100/hzd.mn.ssp370.2100)^-1,
       wgts.ssp585.2050 = (hzd.sd.ssp585.2050/hzd.mn.ssp585.2050)^-1,
-      wgts.ssp585.2100 = (hzd.sd.ssp585.2100/hzd.mn.ssp585.2100)^-1,
-      
+     
       #Estimate potential impacts
       imp.ssp126.2050 = ((hzd.mn.ssp126.2050*wgts.ssp126.2050)*(exp.mn.wioo*wgts.Exposure))/(wgts.ssp126.2050+wgts.Exposure),
-      imp.ssp126.2100 = ((hzd.mn.ssp126.2100*wgts.ssp126.2100)*(exp.mn.wioo*wgts.Exposure))/(wgts.ssp126.2100+wgts.Exposure),
       imp.ssp245.2050 = ((hzd.mn.ssp245.2050*wgts.ssp245.2050)*(exp.mn.wioo*wgts.Exposure))/(wgts.ssp245.2050+wgts.Exposure),
-      imp.ssp245.2100 = ((hzd.mn.ssp245.2100*wgts.ssp245.2100)*(exp.mn.wioo*wgts.Exposure))/(wgts.ssp245.2100+wgts.Exposure),
       imp.ssp370.2050 = ((hzd.mn.ssp370.2050*wgts.ssp370.2050)*(exp.mn.wioo*wgts.Exposure))/(wgts.ssp370.2050+wgts.Exposure),
-      imp.ssp370.2100 = ((hzd.mn.ssp370.2100*wgts.ssp370.2100)*(exp.mn.wioo*wgts.Exposure))/(wgts.ssp370.2100+wgts.Exposure),
-      imp.ssp585.2050 = ((hzd.mn.ssp585.2050*wgts.ssp585.2050)*(exp.mn.wioo*wgts.Exposure))/(wgts.ssp585.2050+wgts.Exposure),
-      imp.ssp585.2100 = ((hzd.mn.ssp585.2100*wgts.ssp585.2100)*(exp.mn.wioo*wgts.Exposure))/(wgts.ssp585.2100+wgts.Exposure)
+      imp.ssp585.2050 = ((hzd.mn.ssp585.2050*wgts.ssp585.2050)*(exp.mn.wioo*wgts.Exposure))/(wgts.ssp585.2050+wgts.Exposure)
     ))
 hist(climdata$imp.ssp370.2050, breaks=30)
 write_rds(climdata, "2_Data/sheet/1_Climate/wioAOO.metrics.rds")
 
 #limit <- max(abs(climdataNew$tx90p_thresh), na.rm = TRUE) * c(-1, 1)
 climdata %>% 
-  filter(is.finite(imp.ssp245.2050))%>% 
+  filter(is.finite(imp.ssp370.2050))%>% 
   ggplot()+ geom_sf(data = wio.ISO3, colour = "grey70", fill = "grey95")+
-  geom_raster(aes(x,y,fill=imp.ssp245.2050))+
+  geom_raster(aes(x,y,fill=imp.ssp370.2050))+
   scale_fill_viridis_c(name = "tx90p[%]", option = "B")+
   #rcartocolor::scale_fill_carto_c(name="", palette = 'Earth', direction = -1)+
   scale_x_continuous(name = "", expand = c(0,0))+
@@ -112,7 +97,6 @@ climdata %>%
         legend.key.height = unit(2.5, 'cm'),
         legend.key.width = unit(.5, 'cm'))
 #ggsave("sst90p2050_ssp245.png", dpi = 1200,width = 11.5, height= 12)
-
 
 ####################################################################################################################################################################
 #REPARE TO EXTRACT IMPACTS DATASET TO COMMUNITY LEVEL#
@@ -200,14 +184,9 @@ names(EucDist)
 (idw.impacts <- EucDist %>% group_by(src) %>%
     summarise(
       imp.ssp126.2050 = sum(imp.ssp126.2050*inverseDist, na.rm = TRUE)/sum(inverseDist, na.rm = TRUE),
-      imp.ssp126.2100 = sum(imp.ssp126.2100*inverseDist, na.rm = TRUE)/sum(inverseDist, na.rm = TRUE),
       imp.ssp245.2050 = sum(imp.ssp245.2050*inverseDist, na.rm = TRUE)/sum(inverseDist, na.rm = TRUE),
-      imp.ssp245.2100 = sum(imp.ssp245.2100*inverseDist, na.rm = TRUE)/sum(inverseDist, na.rm = TRUE),
       imp.ssp370.2050 = sum(imp.ssp370.2050*inverseDist, na.rm = TRUE)/sum(inverseDist, na.rm = TRUE),
-      imp.ssp370.2100 = sum(imp.ssp370.2100*inverseDist, na.rm = TRUE)/sum(inverseDist, na.rm = TRUE),
       imp.ssp585.2050 = sum(imp.ssp585.2050*inverseDist, na.rm = TRUE)/sum(inverseDist, na.rm = TRUE),
-      imp.ssp585.2100 = sum(imp.ssp585.2100*inverseDist, na.rm = TRUE)/sum(inverseDist, na.rm = TRUE),
-      
       corals = sum(CoralExt*inverseDist, na.rm = TRUE)/sum(inverseDist, na.rm = TRUE),
       seagrass = sum(seagrassExt*inverseDist, na.rm = TRUE)/sum(inverseDist, na.rm = TRUE),
       mangrove = sum(mangroveExt*inverseDist, na.rm = TRUE)/sum(inverseDist, na.rm = TRUE),
