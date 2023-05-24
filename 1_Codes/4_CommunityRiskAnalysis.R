@@ -32,7 +32,7 @@ lgd$brks <- factor(lgd$brks, levels = c("Acceptable","Tolerable","Intolerable"))
     #scale_fill_viridis_d(option = "B", direction = -1, begin = .25,end = .75)+
     scale_fill_manual(values = c("Acceptable" = "grey90", "Tolerable" = "grey80", "Intolerable"="grey70"))+
     geom_point(data = df, aes(x = Vulnerability, y = impact, colour = ISO3, shape=sce), size = 1.5) +
-    labs(y = "Climate Change Impacts [Index]", x = "Vulnerability [Index]", title = "Risk Space")+
+    labs(y = "Climate Change Impacts [Index]", x = "Vulnerability [Index]")+
     scale_colour_manual(name="", values = c("KEN"="darkred","MDG"="yellow","MOZ"="dodgerblue4","TZA"="cyan"))+
     theme_bw(base_size = 10)+
     scale_x_continuous(expand = c(0,0))+scale_y_continuous(expand = c(0,0))+
