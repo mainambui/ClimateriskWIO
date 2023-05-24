@@ -33,7 +33,7 @@ lgd$brks <- factor(lgd$brks, levels = c("Acceptable","Tolerable","Intolerable"))
     scale_fill_manual(values = c("Acceptable" = "grey90", "Tolerable" = "grey80", "Intolerable"="grey70"))+
     geom_point(data = df, aes(x = Vulnerability, y = impact, colour = ISO3, shape=sce), size = 1.5) +
     labs(y = "Climate Change Impacts [Index]", x = "Vulnerability [Index]", title = "Risk Space")+
-    scale_colour_manual(name="", values = c("KEN"="darkred","MDG"="yellow","MOZ"="dodgerblue4","TZA"="Cyan"))+
+    scale_colour_manual(name="", values = c("KEN"="darkred","MDG"="yellow","MOZ"="dodgerblue4","TZA"="cyan"))+
     theme_bw(base_size = 10)+
     scale_x_continuous(expand = c(0,0))+scale_y_continuous(expand = c(0,0))+
     scale_shape_manual(values = c("SSP2-4.5" = 19, "SSP3-7.0" = 17))+
@@ -119,6 +119,7 @@ Q3 <- summary(df$risk)[[5]] #third quartile
 #           axis.ticks.x = element_line(linewidth = .1)))
 #library(patchwork)
 ggsave(plot=plt2, "3_Outputs/plots/3_RiskResidual.png", dpi = 1200, height = 4, width = 6)
+
 
 ###################################################################################################################
 #                     ECONOMIC VALUATION APPROACHES
