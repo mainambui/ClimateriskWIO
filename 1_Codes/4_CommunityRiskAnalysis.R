@@ -46,7 +46,7 @@ lgd$brks <- factor(lgd$brks, levels = c("Acceptable","Tolerable","Intolerable"))
           legend.key.height = unit(.1, 'cm'),
           legend.key.width = unit(.2, 'cm'), 
           panel.border = element_rect(linewidth = 1)))
-ggsave("3_Outputs/plots/Risk Space.png", width = 4, height = 4, dpi = 1200)
+#ggsave("3_Outputs/plots/Risk Space.png", width = 4, height = 4, dpi = 1200)
 
 ##############################################################################################################################
 #                                 Estimate potential residual risk and plot difference among villages
