@@ -63,9 +63,6 @@ riskMaster <- riskMaster %>%
          rr.ssp370 = ((imp.ssp370.2050*Sensitivity)/AdaptiveCapacity)*exp(-ic2020),
          rr.ssp245 = ((imp.ssp245.2050*Sensitivity)/AdaptiveCapacity)*exp(-ic2020))
 
-summary(riskMaster$risk370)
-summary(riskMaster$risk245)
-
 df <- rbind(data.frame(sce = "SSP2-4.5", risk = (riskMaster$rr.ssp245), village = riskMaster$Villages, ISO3 = riskMaster$ISO3),
             data.frame(sce = "SSP3-7.0", risk = (riskMaster$rr.ssp370), village = riskMaster$Villages, ISO3 = riskMaster$ISO3))
 Q1 <- summary(df$risk)[[2]] #first quartile
@@ -75,22 +72,21 @@ Q3 <- summary(df$risk)[[5]] #third quartile
     geom_rect(fill = "grey80", xmin = -Inf, xmax = Inf, ymin = Q1, ymax = Q3)+
     geom_rect(fill = "grey70", xmin = -Inf, xmax = Inf, ymin = Q3, ymax = Inf)+
     #geom_col(aes(reorder(Villages, risk.ssp370.2050), risk.ssp370.2050), width = .2, fill = "grey90")+
-    geom_point(aes(x=reorder(village,risk), y=risk, colour = ISO3, shape = sce), size = 1.5, position = position_dodge2(width =.5))+
+    geom_point(aes(x=reorder(village,-risk), y=risk, colour = ISO3, shape = sce), size = 1.5, position = position_dodge2(width =.5))+
     #geom_text(aes(x=reorder(village,risk), y=risk, label = round(risk,2)), size = 2, colour = "black", fontface = "bold",position = position_dodge(width =.5))+
-    labs(x = "Coastal communities", y = "Residual risk index")+
+    labs(x = "Villages", y = "Residual risk [index]")+
     scale_y_continuous(expand = c(0,0), limits = c(.3,.7), breaks = seq(.3,.7, 0.05))+
-    scale_x_discrete(expand = c(0,0), position = "top")+
+    #scale_x_discrete(expand = c(0,0), position = "top")+
     scale_shape_manual(values = c("SSP2-4.5" = 19, "SSP3-7.0" = 17))+
-    coord_flip()+
-    theme_classic(base_size = 10)+
+    theme_classic(base_size = 14)+
     scale_colour_manual(name="", values = c("KEN"="darkred","MDG"="yellow","MOZ"="dodgerblue4","TZA"="cyan"))+
     scale_fill_manual(name="", values = c("KEN"="darkred","MDG"="yellow","MOZ"="dodgerblue4","TZA"="cyan"))+
     theme(legend.position = "", 
           legend.background = element_rect(fill = NA),
-          #axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1),
+          axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1),
           axis.line = element_line(linewidth = .1), 
           axis.ticks = element_line(linewidth = .1)))
-ggsave(plot=plt2, "3_Outputs/plots/3_RR.png", dpi = 1200, height = 8.39, width = 5.55)
+ggsave(plot=plt2, "3_Outputs/plots/3_RiskResidual.png", dpi = 1200, height = 5.37, width = 8.6)
 
 
 wio.ISO3 <- st_read("2_Data/shp/country_shape.shp") %>% st_as_sf() %>% st_transform(crs = "+proj=longlat")
