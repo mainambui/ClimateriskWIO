@@ -22,23 +22,60 @@ riskMaster <- merge(socioecom, villageImpacts, by ="Villages")
 riskMaster$Vulnerable <- riskMaster$Sensitivity/riskMaster$AdaptiveCapacity
 df <- rbind(data.frame(sce = "SSP2-4.5", impact = riskMaster$imp.ssp245.2050, Vulnerability = riskMaster$Vulnerable, village = riskMaster$Villages, ISO3 = riskMaster$ISO3),
             data.frame(sce = "SSP3-7.0", impact = riskMaster$imp.ssp370.2050, Vulnerability = riskMaster$Vulnerable, village = riskMaster$Villages, ISO3 = riskMaster$ISO3))
+# yR <- range(df$impact);xR <- range(df$Vulnerability)
+# lgd <- expand.grid(x = seq(xR[1],xR[2], diff(xR)/1500),
+#                    y = seq(yR[1],yR[2], diff(yR)/1500)) %>% 
+#   mutate(x1 = scales::rescale(x),
+#          y1 = scales::rescale(y),
+#          mxCol = x1^2+y1^2,
+#          brks = ntile(mxCol,3),
+#          brks = ifelse(brks==1,"Acceptable",ifelse(brks==2,"Tolerable","Intolerable"))
+#   )
+# lgd$brks <- factor(lgd$brks, levels = c("Acceptable","Tolerable","Intolerable"))
+# (plt1 <- ggplot()+
+#     geom_raster(data = lgd, aes(x = x, y = y, fill = brks))+
+#     #scale_fill_viridis_d(option = "B", direction = -1, begin = .25,end = .75)+
+#     scale_fill_manual(values = c("Acceptable" = "grey90", "Tolerable" = "grey80", "Intolerable"="grey70"))+
+#     geom_point(data = df, aes(x = Vulnerability, y = impact, colour = ISO3, shape=sce), size = 1.5) +
+#     labs(y = "Climate Change Impacts [Index]", x = "Vulnerability [Index]")+
+#     scale_colour_manual(name="", values = c("KEN"="darkred","MDG"="yellow","MOZ"="dodgerblue4","TZA"="cyan"))+
+#     theme_bw(base_size = 10)+
+#     scale_x_continuous(expand = c(0,0))+scale_y_continuous(expand = c(0,0))+
+#     scale_shape_manual(values = c("SSP2-4.5" = 19, "SSP3-7.0" = 17))+
+#     guides(shape="none", colour = "none")+
+#     theme(legend.position = "bottom",
+#           legend.title = element_blank(),
+#           legend.background = element_rect(fill = NA),
+#           legend.key.size = unit(1, 'cm'),
+#           legend.text = element_text(size = 8),
+#           legend.key.height = unit(.1, 'cm'),
+#           legend.key.width = unit(.2, 'cm'), 
+#           panel.border = element_rect(linewidth = 1)))
 yR <- range(df$impact);xR <- range(df$Vulnerability)
+yq1<- summary(df$impact)[2]
+yq3<- summary(df$impact)[5]
+xq2<- summary(df$Vulnerability)[3]
+
 lgd <- expand.grid(x = seq(xR[1],xR[2], diff(xR)/1500),
                    y = seq(yR[1],yR[2], diff(yR)/1500)) %>% 
-  mutate(x1 = scales::rescale(x),
-         y1 = scales::rescale(y),
-         mxCol = x1^2+y1^2,
-         brks = ntile(mxCol,3),
-         brks = ifelse(brks==1,"Acceptable",ifelse(brks==2,"Tolerable","Intolerable"))
-  )
+   mutate(x1 = ifelse(x<xq2,1,2),
+          y1 = ifelse(y<yq1,1,ifelse(y<yq3,2,3)), 
+          bicol = paste(y1,x1,sep = "-"))
 
-lgd$brks <- factor(lgd$brks, levels = c("Acceptable","Tolerable","Intolerable"))
-(plt1 <- ggplot()+
-    geom_raster(data = lgd, aes(x = x, y = y, fill = brks))+
-    #scale_fill_viridis_d(option = "B", direction = -1, begin = .25,end = .75)+
-    scale_fill_manual(values = c("Acceptable" = "grey90", "Tolerable" = "grey80", "Intolerable"="grey70"))+
+custom_bicol <- c(
+  "1-1" = "#d3d3d3", # low x, low y
+  "2-1" = "#ba8890",
+  "3-1" = "#9e3547", # high x, low y
+  "1-2" = "#4279b0", # low x, high y
+  "2-2" = "#3a4e78",
+  "3-2" = "#311e3b" # high x, high y
+)
+(riskspace <- ggplot() +
+    geom_raster(data = lgd, aes(x = x, y = y, fill = bicol))+
+    scale_fill_manual(values = custom_bicol)+
+    guides(fill = "none")+
     geom_point(data = df, aes(x = Vulnerability, y = impact, colour = ISO3, shape=sce), size = 1.5) +
-    labs(y = "Climate Change Impacts [Index]", x = "Vulnerability [Index]")+
+    labs(y = "Climate Change Impacts [Index]", x = "", title = "RISK SPACE")+
     scale_colour_manual(name="", values = c("KEN"="darkred","MDG"="yellow","MOZ"="dodgerblue4","TZA"="cyan"))+
     theme_bw(base_size = 10)+
     scale_x_continuous(expand = c(0,0))+scale_y_continuous(expand = c(0,0))+
@@ -51,9 +88,28 @@ lgd$brks <- factor(lgd$brks, levels = c("Acceptable","Tolerable","Intolerable"))
           legend.text = element_text(size = 8),
           legend.key.height = unit(.1, 'cm'),
           legend.key.width = unit(.2, 'cm'), 
-          panel.border = element_rect(linewidth = 1)))
-#ggsave("3_Outputs/plots/Risk Space.png", width = 4, height = 4, dpi = 1200)
+          panel.border = element_blank()))
+(optSpace <- ggplot() +
+    geom_raster(data = lgd, aes(x = x, y = y, fill = bicol))+
+    scale_fill_manual(values = custom_bicol)+
+    labs(y = "", x = "", title = "OPTIONS SPACE")+
+    theme_bw(base_size = 10)+
+    scale_x_continuous(expand = c(0,0))+scale_y_continuous(expand = c(0,0), position = "right")+
+    guides(fill = "none",shape="none", colour = "none")+
+    theme(legend.position = "bottom",
+          legend.title = element_blank(),
+          legend.background = element_rect(fill = NA),
+          legend.key.size = unit(1, 'cm'),
+          legend.text = element_text(size = 8),
+          legend.key.height = unit(.1, 'cm'),
+          legend.key.width = unit(.2, 'cm'), 
+          panel.border = element_blank(), 
+          axis.text = element_blank(),
+          axis.ticks = element_blank()))
 
+library(patchwork)
+riskspace+optSpace
+ggsave("3_Outputs/plots/RS2.png", width = 5, height = 4, dpi = 1200)
 ##############################################################################################################################
 #                                 Estimate potential residual risk and plot difference among villages
 #############################################################################################################################
@@ -215,21 +271,25 @@ sd(riskMaster$ld_ssp370)
 dfs <- riskMaster[,c("ISO3","Villages","Sensitivity","AdaptiveCapacity","imp.ssp245.2050","imp.ssp370.2050","rr.ssp245", "rr.ssp370","TEV","ld_ssp245","ld_ssp370")]
 #write_excel_csv(dfs, "2_Data/sheet/TableS3.csv")
 
-yq1<- summary(dfs$rr.ssp370)[2]
-yq3<- summary(dfs$rr.ssp370)[5]
-xq1<- summary(dfs$TEV/1e6)[2]
-xq3<- summary(dfs$TEV/1e6)[5]
+yq2<- summary(dfs$rr.ssp370)[2]
+xq2<- summary(dfs$TEV/1e6)[3]
 #Plot
 yR <- range(dfs$rr.ssp370);xR <- range(dfs$TEV/1e6)
 lgd <- expand.grid(x = seq(xR[1],xR[2], diff(xR)/1500),
                    y = seq(yR[1],yR[2], diff(yR)/1500)) %>% 
-  mutate(x1 = scales::rescale(ifelse(x<xq1,1,ifelse(x>xq3,2,3))),
-         y1 = scales::rescale(ifelse(y<yq1,1,ifelse(y>yq3,2,3))),
-         mix = rgb(x1,y1,.75)
+  mutate(x1 = ifelse(x<xq2,1,2),
+         y1 = ifelse(y<yq2,1,2)
   )
+
+custom_pal3 <- c(
+  "1-1" = "#d3d3d3", # low x, low y
+  "1-2" = "#9e3547", # high x, low y
+  "2-1" = "#4279b0", # low x, high y
+  "2-2" = "#311e3b" # high x, high y
+)
 (plt1 <- ggplot()+
-    geom_raster(data = lgd, aes(x = x, y = y, fill = mix))+
-    scale_fill_identity()+
+    geom_raster(data = lgd, aes(x = x, y = y, fill = paste(x1,y1,sep="-")))+
+    scale_fill_manual(values = custom_pal3)+
     geom_point(data = dfs, aes(x = TEV/1e6, y = rr.ssp370, shape = ISO3), size = 1.5) +
     labs(y = "Potential residual risk", x = "Total Economic Value (Million US$/year)")+
     #scale_colour_manual(name="", values = c("KEN"="darkred","MDG"="yellow","MOZ"="dodgerblue4","TZA"="cyan"))+
@@ -237,7 +297,7 @@ lgd <- expand.grid(x = seq(xR[1],xR[2], diff(xR)/1500),
     scale_x_continuous(expand = c(0,0))+scale_y_continuous(expand = c(0,0))+
     #scale_shape_manual(values = c("SSP2-4.5" = 19, "SSP3-7.0" = 17))+
     guides(shape="none", colour = "none")+
-    theme(legend.position = "bottom",
+    theme(legend.position = "none",
           legend.title = element_blank(),
           legend.background = element_rect(fill = NA),
           legend.key.size = unit(1, 'cm'),
@@ -245,4 +305,4 @@ lgd <- expand.grid(x = seq(xR[1],xR[2], diff(xR)/1500),
           legend.key.height = unit(.1, 'cm'),
           legend.key.width = unit(.2, 'cm'), 
           panel.border = element_blank()))
-ggsave("3_Outputs/plots/L&D Space.png", width = 4, height = 4, dpi = 1200)
+ggsave("3_Outputs/plots/L&D.png", width = 4, height = 4, dpi = 1200)
