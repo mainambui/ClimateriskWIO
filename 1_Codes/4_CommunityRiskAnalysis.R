@@ -109,7 +109,7 @@ custom_bicol <- c(
 
 library(patchwork)
 riskspace+optSpace
-ggsave("3_Outputs/plots/RS2.png", width = 5, height = 4, dpi = 1200)
+#ggsave("3_Outputs/plots/RS2.png", width = 5, height = 4, dpi = 1200)
 ##############################################################################################################################
 #                                 Estimate potential residual risk and plot difference among villages
 #############################################################################################################################
@@ -270,6 +270,29 @@ sd(riskMaster$ld_ssp370)
 
 dfs <- riskMaster[,c("ISO3","Villages","Sensitivity","AdaptiveCapacity","imp.ssp245.2050","imp.ssp370.2050","rr.ssp245", "rr.ssp370","TEV","ld_ssp245","ld_ssp370")]
 #write_excel_csv(dfs, "2_Data/sheet/TableS3.csv")
+
+
+dfs
+ggplot()+
+  geom_boxplot(data = dfs, aes(x = "SSP2-4.5", y = ld_ssp245/1e6, fill = "SSP2-4.5"))+
+  geom_boxplot(data = dfs, aes(x = "SSP3-7.0", y = ld_ssp370/1e6, fill = "SSP3-7.0"))+
+  scale_y_continuous("Potential loss & damages (Million US$/year)")+
+  scale_x_discrete("")+
+  scale_fill_manual(values = c("SSP2-4.5" = "darkgreen", "SSP3-7.0" = "darkred"))+
+  theme_minimal(base_size = 14)+
+  theme(legend.position = "none", 
+        legend.title = element_blank())
+ggsave("3_Outputs/plots/potentialloss.png", dpi = 1200, wdith = 2.39, height = 5.84)
+
+
+
+
+
+
+
+
+
+
 
 yq2<- summary(dfs$rr.ssp370)[2]
 xq2<- summary(dfs$TEV/1e6)[3]

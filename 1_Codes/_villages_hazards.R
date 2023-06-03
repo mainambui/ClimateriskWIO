@@ -13,7 +13,7 @@ wio.ISO3 <- st_read("2_Data/shp/country_shape.shp") %>% st_as_sf() %>% st_transf
 #LOAD METRICS
 (clim.nc <- list.files("./2_Data/raster", pattern='*.nc',full.names=TRUE))#[-c(1)]
 nc <- (as.data.frame(expand.grid(x=c(126,245,370,585), y=c(2050,2100))) %>% arrange(desc(-x)) %>% mutate(cbn = paste(x,y,sep = "_")) %>% dplyr::select(cbn))[,1]
-varlst <- c("cdd", "evspsbl", "npp", "pH_trend", "r10Int","r10p","sst_trend","sst90Int","sst90p","tap_trend","ts90Int","ts90p")
+varlst <- c("cdd","evspsbl","npp","pH_trend","r10Int","r10p","sst_trend","sst90Int","sst90p","tap_trend","ts90Int","ts90p")
 
 allRaster <- lapply(1:length(varlst), function(x){
   rr <- raster::brick(clim.nc[grep(varlst[[x]], clim.nc)])
