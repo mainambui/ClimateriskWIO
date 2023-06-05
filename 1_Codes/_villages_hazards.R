@@ -1,7 +1,7 @@
 #PREPARE TO EXTRACT DATA TO AOO
 rm(list = ls())
 
-library(tidyverse);library(raster);library(SearchTrees);library(sf);library(sp);library(pracma)
+library("tidyverse");library("raster");library("SearchTrees");library("sf");library("sp");library("pracma")
 #import some important functions
 source("1_Codes/3_KeyFunctions.R")
 

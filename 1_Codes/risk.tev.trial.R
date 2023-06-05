@@ -1,14 +1,14 @@
 # Constructing a contour of circles
-xColor <- seq(0,1,length.out=100) # scale of color for x and y, 
-yColor <- seq(0,1,length.out=100)
-x <- seq(0,7.5,length.out=100) # on respective x and y axis
-y <- seq(0,1,length.out=100)
+xColor <- seq(0,1,length.out=1000) # scale of color for x and y, 
+yColor <- seq(0,1,length.out=1000)
+x <- seq(0,7.5,length.out=1000) # on respective x and y axis
+y <- seq(0,1,length.out=1000)
 df <- cbind(expand.grid(x=xColor, y=yColor), expand.grid(x=x, y=y)) #grid for colors
 colnames(df)<-c("xColor","yColor","x","y")
 df$zColor <- (df$xColor^2+df$yColor^2) # the color factor for radius
+df$zColor <- ntile(df$zColor, 5)
 
-
-plt1 <- ggplot()+
+(plt1 <- ggplot()+
   geom_raster(data = df, aes(x = x, y = y, fill = zColor))+
   scale_fill_distiller(type = "div", palette = "Spectral", direction=-1)+
   geom_point(data = dfs, aes(x = TEV/1e6, y = rr.ssp370, shape = ISO3), size = 1.5) +
@@ -25,4 +25,4 @@ plt1 <- ggplot()+
         legend.text = element_text(size = 8),
         legend.key.height = unit(.1, 'cm'),
         legend.key.width = unit(.2, 'cm'), 
-        panel.border = element_blank())
+        panel.border = element_blank()))
