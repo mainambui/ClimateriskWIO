@@ -237,6 +237,7 @@ riskMaster <- riskMaster %>%
          risk245 = (imp.ssp245.2050*Vulnerable),
          brk1 = (scales::rescale(imp.ssp585.2050)^2*scales::rescale(Vulnerable)^2),
          brk2 = (scales::rescale(imp.ssp245.2050)^2*scales::rescale(Vulnerable)^2),
+         rr.ssp585 = risk585*exp(-ic2020),
          rr.ssp370 = risk370*exp(-ic2020),
          rr.ssp245 = risk245*exp(-ic2020))
 mean(riskMaster$risk585, na.rm=TRUE);sd(riskMaster$risk585, na.rm=TRUE)
@@ -388,14 +389,14 @@ econValues <- readxl::read_excel("2_Data/sheet/4_EconomicValuations/EcosystemSer
 riskMaster <- merge(riskMaster, econValues, by.x = "ISO3")
 #Find total economic value
 riskMaster$TEV = ((riskMaster$CoralExt*riskMaster$CoralsVal)+(riskMaster$seagrassExt*riskMaster$SeagrassVal)+(riskMaster$mangroveExt*riskMaster$MangroveVal)+(riskMaster$Cropland*riskMaster$CropsVal))/1e4 #divide by 10000 to convert from meters to hectares
-plot(riskMaster$TEV/1e6, riskMaster$rr.ssp370)
-riskMaster$ld_ssp370 = riskMaster$TEV*riskMaster$rr.ssp370
+plot(riskMaster$TEV/1e6, riskMaster$rr.ssp585)
+riskMaster$ld_ssp585 = riskMaster$TEV*riskMaster$rr.ssp585
 riskMaster$ld_ssp245 = riskMaster$TEV*riskMaster$rr.ssp245
 summary(riskMaster$ld_ssp370)
 sum(riskMaster$ld_ssp370)
 sd(riskMaster$ld_ssp370)
 
-dfs <- riskMaster[,c("ISO3","Villages","Sensitivity","AdaptiveCapacity","imp.ssp245.2050","imp.ssp370.2050","rr.ssp245", "rr.ssp370","TEV","ld_ssp245","ld_ssp370")]
+dfs <- riskMaster[,c("ISO3","Villages","Sensitivity","AdaptiveCapacity","imp.ssp245.2050","imp.ssp370.2050","rr.ssp245", "rr.ssp585","TEV")]
 #write_excel_csv(dfs, "2_Data/sheet/TableS3.csv")
 
 ggplot()+
@@ -412,14 +413,14 @@ ggsave("3_Outputs/plots/potentialloss.png", dpi = 1200, wdith = 2.39, height = 5
 
 
 
-yq2<- summary(dfs$rr.ssp370)[2]
+yq2<- summary(dfs$rr.ssp585)[2]
 xq2<- summary(dfs$TEV/1e6)[3]
 #Plot
-yR <- range(dfs$rr.ssp370);xR <- range(dfs$TEV/1e6)
-lgd <- expand.grid(x = seq(xR[1],xR[2], diff(xR)/1500),
-                   y = seq(yR[1],yR[2], diff(yR)/1500)) %>% 
-  mutate(x1 = ifelse(x<xq2,1,2),
-         y1 = ifelse(y<yq2,1,2)
+yR <- range(dfs$rr.ssp585);xR <- range(dfs$TEV/1e6)
+lgd <- expand.grid(x = seq(1,7.5, diff(xR)/150),
+                   y = seq(0,1, diff(yR)/150)) %>% 
+  mutate(x1 = ifelse(x<4.25,1,2),
+         y1 = ifelse(y<0.5,1,2)
   )
 
 custom_pal3 <- c(
@@ -431,7 +432,7 @@ custom_pal3 <- c(
 (plt1 <- ggplot()+
     geom_raster(data = lgd, aes(x = x, y = y, fill = paste(x1,y1,sep="-")))+
     scale_fill_manual(values = custom_pal3)+
-    geom_point(data = dfs, aes(x = TEV/1e6, y = rr.ssp370, shape = ISO3), size = 1.5) +
+    geom_point(data = dfs, aes(x = TEV/1e6, y = rr.ssp585, shape = ISO3, label = ), size = 1.5) +
     labs(y = "Potential residual risk", x = "Total Economic Value (Million US$/year)")+
     #scale_colour_manual(name="", values = c("KEN"="darkred","MDG"="yellow","MOZ"="dodgerblue4","TZA"="cyan"))+
     theme_bw(base_size = 10)+
@@ -446,4 +447,6 @@ custom_pal3 <- c(
           legend.key.height = unit(.1, 'cm'),
           legend.key.width = unit(.2, 'cm'), 
           panel.border = element_blank()))
-ggsave("3_Outputs/plots/L&D.png", width = 4, height = 4, dpi = 1200)
+ggsave("3_Outputs/plots/L&D22.png", width = 4, height = 4, dpi = 1200)
+
+
