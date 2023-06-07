@@ -6,7 +6,7 @@ y <- seq(0,1,length.out=1000)
 df <- cbind(expand.grid(x=xColor, y=yColor), expand.grid(x=x, y=y)) #grid for colors
 colnames(df)<-c("xColor","yColor","x","y")
 df$zColor <- (df$xColor^2+df$yColor^2) # the color factor for radius
-df$zColor <- ntile(df$zColor, 5)
+df$zColor <- ntile(df$zColor, 10)
 
 (plt1 <- ggplot()+
   geom_raster(data = df, aes(x = x, y = y, fill = zColor))+
