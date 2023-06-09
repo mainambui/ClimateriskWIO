@@ -14,7 +14,6 @@ wio.AOO.spdf <- st_as_sf(wio.AOO, coords=c('x', 'y'), crs="+proj=longlat")
 (clim.nc <- list.files("./2_Data/raster", pattern='*.nc',full.names=TRUE))
 nc <- (as.data.frame(expand.grid(x=c(126,245,370,585), y=c(2050,2100))) %>% arrange(desc(-x)) %>% mutate(cbn = paste(x,y,sep = "_")) %>% dplyr::select(cbn))[,1]
 varlst <- c("cdd","evspsbl","npp","pH_trend","r10p","tap_trend","sst_trend","sst90p","ts_trend","ts90p","ts90Int","r10Int","sst90Int")
-
 allRaster <- lapply(1:length(varlst), function(x){
   rr <- raster::brick(clim.nc[grep(varlst[[x]], clim.nc)])
   names(rr) <- paste(varlst[[x]], nc, sep = "_")
@@ -114,7 +113,6 @@ hist(EucDist$inverseDist, breaks = 30)
 (wio.com.idw.impacts <- merge(villageGridID, idw.impacts, by = "ID"))
 plot(wio.com.idw.impacts$Cropland, wio.com.idw.impacts$sst90Int_ssp585)
 write_csv(wio.com.idw.impacts, "2_Data/sheet/3_villagesClimateExposureImpacts.csv")
-
 
 library(tidyverse);library(sf);library(sp)
 socioecom <- read_csv("2_Data/sheet/3_SocialVulnerability/SocialDataAll.csv")
