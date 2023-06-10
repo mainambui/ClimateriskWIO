@@ -179,7 +179,7 @@ lgd$brks <- factor(lgd$brks, levels = c("Low","Medium","High","Very high"))
     geom_raster(data = lgd, aes(x = x, y = y, fill = brks))+
     #scale_fill_manual(values = c("Low" = "grey90", "Medium" = "grey80", "High"="grey70", "Very high" = "grey60"))+
     scale_fill_manual(values = c("Low" = "#d3d3d3", "Medium" = "#a88283", "High"="#7e433e", "Very high" = "#551601"))+
-    geom_point(data = df, aes(x = Vulnerability, y = impact, shape=sce), size = .5) +
+    geom_point(data = df, aes(x = Vulnerability, y = impact, shape=sce)) +
     labs(y = "Climate change impacts [Index]", x = "", title = "a. RISK SPACE")+
     scale_y_continuous(expand = c(0,0), breaks = seq(.3,1,.1))+
     theme_bw(base_size = 8)+
@@ -214,12 +214,12 @@ lgd$brks <- factor(lgd$brks, levels = c("Low","Medium","High","Very high"))
           panel.border = element_blank(),
           axis.text = element_blank(),
           axis.ticks = element_blank()))
-
+library(patchwork)
 # Create grid
 grobs <- ggplotGrob(optSpace)$grobs
 legend <- grobs[[which(sapply(grobs, function(x) x$name) == "guide-box")]]
 rrSpace <- ((riskspace|optSpace+theme(legend.position = "none"))/legend)+plot_layout(heights = c(2, .1))
-ggsave(plot = rrSpace, "3_Outputs/plots/_rr_n.png", dpi = 1200, height = 3, width = 4)
+#ggsave(plot = rrSpace, "3_Outputs/plots/Fig2a.png", dpi = 1200, height = 3, width = 4)
 
 ##############################################################################################################################
 #                                 Estimate potential residual risk and plot difference among villages
@@ -227,12 +227,12 @@ ggsave(plot = rrSpace, "3_Outputs/plots/_rr_n.png", dpi = 1200, height = 3, widt
 
 riskMaster <- riskMaster %>% 
   mutate(risk585 = (imp.ssp585.2050*Vulnerable),
-         #risk370 = (imp.ssp370.2050*Vulnerable),
+         risk370 = (imp.ssp370.2050*Vulnerable),
          risk245 = (imp.ssp245.2050*Vulnerable),
          brk1 = (scales::rescale(imp.ssp585.2050)^2*scales::rescale(Vulnerable)^2),
          brk2 = (scales::rescale(imp.ssp245.2050)^2*scales::rescale(Vulnerable)^2),
          rr.ssp585 = risk585*exp(-ic2020),
-         #rr.ssp370 = risk370*exp(-ic2020),
+         rr.ssp370 = risk370*exp(-ic2020),
          rr.ssp245 = risk245*exp(-ic2020))
 mean(riskMaster$risk585, na.rm=TRUE);sd(riskMaster$risk585, na.rm=TRUE)
 mean(riskMaster$risk245, na.rm=TRUE);sd(riskMaster$risk245, na.rm=TRUE)
@@ -249,20 +249,22 @@ df$brks <- ifelse(df$col < 0.00457, "Low", ifelse(df$col <  0.0348, "Medium", if
     #geom_rect(fill = "grey80", xmin = -Inf, xmax = Inf, ymin = .33, ymax = .66)+
     #geom_rect(fill = "grey70", xmin = -Inf, xmax = Inf, ymin = .66, ymax = Inf)+
     geom_point(aes(x=reorder(village,risk), y=risk, colour = brks, shape = sce), size = 1, position = position_dodge2(width =.5))+
-    labs(x = "Villages", y = "Climate risk [index]", title = "c. RISK SCORE")+
-    scale_y_continuous(expand = c(0,0), limits = c(.3,1.2), breaks = seq(.3,1.2, .1))+
-    scale_shape_manual(values = c("SSP2-4.5" = 1, "SSP5-8.5" = 2))+
+    labs(x = "Villages", y = "Climate risk", title = "c. RISK SCORE")+
+    scale_y_continuous(expand = c(0,0), limits = c(.3,1), breaks = seq(.3,1, .1))+
+    scale_shape_manual("", values = c("SSP2-4.5" = 1, "SSP5-8.5" = 2))+
     theme_classic(base_size = 8)+
     scale_colour_manual(values = c("Low" = "#d3d3d3", "Medium" = "#a88283", "High"="#7e433e", "Very high" = "#551601"))+
     #scale_colour_manual(values = c("Low" = "grey90", "Medium" = "grey80", "High"="grey70", "Very high" = "grey60"))+
-    theme(legend.position = "", 
+    guides(colour = "none")+
+    theme(legend.position = c(0.1,.9), 
+          legend.text = element_text(size = 5),
+          legend.spacing.y = element_blank(), 
           legend.background = element_rect(fill = NA),
           axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1),
           axis.line = element_line(linewidth = .1), 
           axis.ticks = element_line(linewidth = .1)))
 
-library(patchwork)
-ggsave(plot = plt2, "3_Outputs/plots/3_RiskRank.png", dpi = 1200, height = 2, width = 4)
+ggsave(plot = plt2, "3_Outputs/plots/Fig2b.png", dpi = 1200, height = 3, width = 4)
 
 #Plots bars for each country
 # df1 <- dfRisk %>% group_by(ISO3) %>% 
