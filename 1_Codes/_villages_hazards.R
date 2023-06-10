@@ -1,9 +1,13 @@
 #PREPARE TO EXTRACT DATA TO AOO
-rm(list = ls())
 
+rm(list = ls())
 library("tidyverse");library("raster");library("SearchTrees");library("sf");library("sp");library("pracma")
+
 #import some important functions
-source("1_Codes/3_KeyFunctions.R")
+inormal <- function(x) {
+  qrank <- ((rank(x, na.last = TRUE, ties.method= "random") - 0.5) / sum(!is.na(x)))
+  z_score <- scales::rescale(sqrt(2)*pracma::erfinv(2*qrank-1))
+  return(z_score)  }
 
 #Import PU and convert to a spatial object
 wio.AOO <- readRDS("2_Data/sheet/2_Ecosystems/wioAOO.rds")
@@ -12,6 +16,8 @@ wio.AOO.spdf <- st_as_sf(wio.AOO, coords=c('x', 'y'), crs="+proj=longlat")
 
 #LOAD METRICS
 (clim.nc <- list.files("./2_Data/raster",pattern='*.nc',full.names=TRUE))
+
+#Note that each NC file contains eight layers which is generally structured as SSP126_2050, SSP126_2100, SSP245_2050, SSP245_2100, SSP370_2050, SSP370_2100, SSP585_2050, SSP585_2100
 nc <- (as.data.frame(expand.grid(x=c(126,245,370,585), y=c(2050,2100))) %>% arrange(desc(-x)) %>% mutate(cbn = paste(x,y,sep = "_")) %>% dplyr::select(cbn))[,1]
 varlst <- c("cdd","evspsbl","npp","pH_trend","r10p","tap_trend","sst_trend","sst90p","ts_trend","ts90p","ts90Int","r10Int","sst90Int")
 allRaster <- lapply(1:length(varlst), function(x){
@@ -19,37 +25,46 @@ allRaster <- lapply(1:length(varlst), function(x){
   names(rr) <- paste(varlst[[x]], nc, sep = "_")
   return(rr)}
 )
-hazards <- stack(allRaster);N <- nlayers(hazards);#df.hzd <- as.data.frame(hazards, xy=TRUE)
+hazards <- stack(allRaster);N <- nlayers(hazards)
 
-#Quantile transform
-# m1 <- names(hazards)
-# rr <- lapply(1:length(m1), function(x){quant_transform(df.hzd, m1[[x]])})
-# rr <- stack(rr);plot(rr)
-
+#Extract the raw hazards to the WIO's AOO of interest
 climdata <- raster::extract(hazards, wio.AOO.spdf, sp=TRUE, df=TRUE) %>% as.data.frame()
 colnames(climdata)[colnames(climdata) == "coords.x1"] <- "x"
 colnames(climdata)[colnames(climdata) == "coords.x2"] <- "y"
 climdata <- climdata %>% relocate(x:y, .before = ID)
 N <- ncol(climdata)
 climdata <- cbind(climdata[1:14], DMwR2::knnImputation(climdata[15:N], k = 3))
-namelist <- colnames(climdata)
 
-df1 <- cbind("ID" = climdata[,"ID"], sce = "ssp245", climdata[,namelist[grep("_245_2050", namelist)]]); colnames(df1) <- c("ID","Scenario", paste(varlst))
-df2 <- cbind("ID" = climdata[,"ID"], sce = "ssp370", climdata[,namelist[grep("_370_2050", namelist)]]); colnames(df2) <- c("ID","Scenario", paste(varlst))
-df3 <- cbind("ID" = climdata[,"ID"], sce = "ssp585", climdata[,namelist[grep("_585_2050", namelist)]]); colnames(df3) <- c("ID","Scenario", paste(varlst))
+#Put in a function to tiddy up the Global Environment
+QTtransform <- function(df,vlst,scenario,time){
+  nlist <- colnames(df)
+  #scenario <- match.arg(sce)
+  xx <- lapply(1:length(scenario), FUN = function(x){
+    d1 <- cbind("ID" = df[,"ID"], sce = paste("ssp",scenario[[x]],sep=""), df[,nlist[grep(paste(scenario[[x]],time,sep="_"),nlist)]])
+    colnames(d1) <- c("ID","Scenario",paste(vlst))
+    return(d1)}) %>% bind_rows()
+  
+  #Quantile transform
+  inormal <- function(x) {
+    qrank <- ((rank(x, na.last = TRUE, ties.method= "random") - 0.5) / sum(!is.na(x)))
+    z_score <- scales::rescale(sqrt(2)*pracma::erfinv(2*qrank-1))
+    return(z_score)  }
+  
+  dfNmd <- xx %>% as.data.frame() %>% mutate(pH_trend = -1*pH_trend) %>% mutate(across(cdd:sst90Int, ~ inormal(.x)))
+  #Convert to wide format
+  dfWide <- lapply(1:length(vlst), FUN = function(x){ 
+    xv <- reshape2::dcast(dfNmd, ID ~ Scenario, value.var= vlst[[x]])
+    names(xv) <- c("ID", paste(vlst[[x]], scenario, time, sep = "_"))
+    return(xv)})
+  
+  stdHzd <- dfWide %>% reduce(left_join, by = "ID")
+  return(stdHzd)
+}
 
-#Quantile transform
-dfNormed <- rbind(df1,df2,df3) %>% as.data.frame() %>% mutate(pH_trend = -1*pH_trend) %>% mutate(across(cdd:sst90Int, ~ inormal(.x)))
-#dfNormed %>% ggplot(aes(x = sst90Int, colour = Scenario))+geom_density()
+#Inverse Normal Standardised Variables
+(HazardQNormed <- QTtransform(climdata, vlst = varlst, time = 2050, scenario = c(245,370,585)))
 
-library(reshape2)
-(dfNormedWide <- lapply(1:length(varlst), FUN = function(x){
-  xv <- reshape2::dcast(dfNormed, ID ~ Scenario, value.var= varlst[[x]])
-  names(xv) <- c("ID", paste(varlst[[x]], c("ssp245","ssp370","ssp585"), sep = "_"))
-  return(xv)
-}))
-
-HazardNormed <- dfNormedWide %>% reduce(left_join, by = "ID")
+#Normalised Exposed Systems Metrics
 ExposureNormed <- climdata %>% 
   dplyr::select(ID,CoralExt,seagrassExt,mangroveExt,Cropland,Nb_sp,FRic,FDiv,FEve,FDis,FSpe,FOri)%>%
   #Create copies of the Exposed systems. the original versions will be needed later
@@ -63,21 +78,21 @@ ExposureNormed <- climdata %>%
          std_FEve = FEve)%>% 
   mutate(across(std_corals:std_Nb_sp, ~ inormal(.x)))#FRic, FDiv, and FEve are already normalised variables
 
-HazardExposures <- merge(ExposureNormed, HazardNormed, by = "ID")
+HazardExposures <- merge(ExposureNormed, HazardQNormed, by = "ID")
 namelist <- colnames(HazardExposures)
 (ClimImpacts <- HazardExposures %>% 
     rowwise() %>%
     mutate(
       #mean across 13 normalised climate metrics
-      hzd.mn.ssp245.2050 = mean(c_across(namelist[grep("_ssp245", namelist)]), na.rm=TRUE),
-      hzd.mn.ssp370.2050 = mean(c_across(namelist[grep("_ssp370", namelist)]), na.rm=TRUE),
-      hzd.mn.ssp585.2050 = mean(c_across(namelist[grep("_ssp585", namelist)]), na.rm=TRUE),
+      hzd.mn.ssp245.2050 = mean(c_across(namelist[grep("_245", namelist)]), na.rm=TRUE),
+      hzd.mn.ssp370.2050 = mean(c_across(namelist[grep("_370", namelist)]), na.rm=TRUE),
+      hzd.mn.ssp585.2050 = mean(c_across(namelist[grep("_585", namelist)]), na.rm=TRUE),
       exp.mn.wioo = mean(c_across(std_Nb_sp:std_FEve), na.rm=TRUE),
       
       #standard deviations across 13 normalised climate metrics
-      hzd.sd.ssp245.2050 = sd(c_across(namelist[grep("_ssp245", namelist)]), na.rm=TRUE),
-      hzd.sd.ssp370.2050 = sd(c_across(namelist[grep("_ssp370", namelist)]), na.rm=TRUE),
-      hzd.sd.ssp585.2050 = sd(c_across(namelist[grep("_ssp585", namelist)]), na.rm=TRUE),
+      hzd.sd.ssp245.2050 = sd(c_across(namelist[grep("_245", namelist)]), na.rm=TRUE),
+      hzd.sd.ssp370.2050 = sd(c_across(namelist[grep("_370", namelist)]), na.rm=TRUE),
+      hzd.sd.ssp585.2050 = sd(c_across(namelist[grep("_585", namelist)]), na.rm=TRUE),
       exp.sd.wioo = sd(c_across(std_Nb_sp:std_FEve), na.rm=TRUE)) %>% ungroup() %>%
     mutate(
       #Deduce inverse variance weights
