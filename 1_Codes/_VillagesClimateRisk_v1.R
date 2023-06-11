@@ -25,7 +25,7 @@ allRaster <- lapply(1:length(varlst), function(x){
   names(rr) <- paste(varlst[[x]], nc, sep = "_")
   return(rr)}
 )
-hazards <- stack(allRaster);N <- nlayers(hazards)
+hazards <- stack(allRaster)
 
 #Extract the raw hazards to the WIO's AOO of interest
 climdata <- raster::extract(hazards, wio.AOO.spdf, sp=TRUE, df=TRUE) %>% as.data.frame()
@@ -39,22 +39,26 @@ climdata <- cbind(climdata[1:14], DMwR2::knnImputation(climdata[15:N], k = 3))
 QTtransform <- function(df,vlst,scenario,time){
   nlist <- colnames(df)
   #scenario <- match.arg(sce)
-  xx <- lapply(1:length(scenario), FUN = function(x){
-    d1 <- cbind("ID" = df[,"ID"], sce = paste("ssp",scenario[[x]],sep=""), df[,nlist[grep(paste(scenario[[x]],time,sep="_"),nlist)]])
+  xx = c()
+  for(k in seq_along(time)){
+    xx[[k]] <- lapply(1:length(scenario), function(x){d1 <- cbind("ID" = df[,"ID"], sce = paste("ssp",scenario[[x]],sep=""), df[,nlist[grep(paste(scenario[[x]],time[[k]],sep="_"),nlist)]])
     colnames(d1) <- c("ID","Scenario",paste(vlst))
     return(d1)}) %>% bind_rows()
+  }
+  names(xx) <- paste(time)
+  xx <- bind_rows(xx, .id = "Period")
   
   #Quantile transform
-  inormal <- function(x) {
+  inormal <- function(x){
     qrank <- ((rank(x, na.last = TRUE, ties.method= "random") - 0.5) / sum(!is.na(x)))
     z_score <- scales::rescale(sqrt(2)*pracma::erfinv(2*qrank-1))
-    return(z_score)  }
-  
+    return(z_score)}
   dfNmd <- xx %>% as.data.frame() %>% mutate(pH_trend = -1*pH_trend) %>% mutate(across(cdd:sst90Int, ~ inormal(.x)))
   #Convert to wide format
-  dfWide <- lapply(1:length(vlst), FUN = function(x){ 
-    xv <- reshape2::dcast(dfNmd, ID ~ Scenario, value.var= vlst[[x]])
-    names(xv) <- c("ID", paste(vlst[[x]], scenario, time, sep = "_"))
+  dfWide <- lapply(1:length(vlst), function(x){
+    xv <- reshape2::dcast(dfNmd, ID ~ Scenario+Period, value.var= vlst[[x]])
+    scePeriod <- rep(scenario, each = length(time))
+    names(xv) <-c("ID", paste(rep(vlst[[x]], each = length(scePeriod)), scePeriod, time, sep = "_"))
     return(xv)})
   
   stdHzd <- dfWide %>% reduce(left_join, by = "ID")
@@ -94,6 +98,7 @@ namelist <- colnames(HazardExposures)
       hzd.sd.ssp370.2050 = sd(c_across(namelist[grep("_370", namelist)]), na.rm=TRUE),
       hzd.sd.ssp585.2050 = sd(c_across(namelist[grep("_585", namelist)]), na.rm=TRUE),
       exp.sd.wioo = sd(c_across(std_Nb_sp:std_FEve), na.rm=TRUE)) %>% ungroup() %>%
+    
     mutate(
       #Deduce inverse variance weights
       wgts.Exposure = (exp.sd.wioo/exp.mn.wioo)^-1,
@@ -175,13 +180,13 @@ ggplot(data = socioecom, aes(x="XS", y=Vulnerable,label=VillNation))+
 ##################################################################################################################
 #Import climate data
 villageImpacts <- read_csv("2_Data/sheet/3_VillageImpacts.csv")
-riskMaster <- merge(socioecom, villageImpacts, by ="Villages")
+riskMaster <- merge(socioecom, ClimImpacts, by ="Villages")
 
 df <- rbind(data.frame(sce = "SSP2-4.5", impact = riskMaster$imp.ssp245.2050, Vulnerability = riskMaster$Vulnerable, village = riskMaster$Villages, ISO3 = riskMaster$ISO3),
             data.frame(sce = "SSP5-8.5", impact = riskMaster$imp.ssp585.2050, Vulnerability = riskMaster$Vulnerable, village = riskMaster$Villages, ISO3 = riskMaster$ISO3))
 yR <- range(df$impact);xR <- range(df$Vulnerability)
 lgd <- expand.grid(x = seq(0.9,1.5, diff(xR)/1000),
-                   y = seq(0.3,1, diff(yR)/1000)) %>%
+                   y = seq(0,1, diff(yR)/1000)) %>%
   mutate(x1 = scales::rescale(x),
          y1 = scales::rescale(y),
          mxCol = x1^2*y1^2,
@@ -233,7 +238,7 @@ library(patchwork)
 # Create grid
 grobs <- ggplotGrob(optSpace)$grobs
 legend <- grobs[[which(sapply(grobs, function(x) x$name) == "guide-box")]]
-rrSpace <- ((riskspace|optSpace+theme(legend.position = "none"))/legend)+plot_layout(heights = c(2, .1))
+(rrSpace <- ((riskspace|optSpace+theme(legend.position = "none"))/legend)+plot_layout(heights = c(2, .1)))
 #ggsave(plot = rrSpace, "3_Outputs/plots/Fig2a.png", dpi = 1200, height = 3, width = 4)
 
 ##############################################################################################################################
