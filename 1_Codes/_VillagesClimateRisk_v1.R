@@ -118,15 +118,15 @@ write_csv(ClimImpacts, "2_Data/sheet/2_ClimateImpactsGRIDs.csv")
 #Merge grid level impacts to the network
 #########################################################################################################################################
 
-#ClimImpacts <- read_csv("2_Data/sheet/2_ClimateImpacts.csv")
+ImpactsGRIDs <- read_csv("2_Data/sheet/2_ClimateImpactsGRIDs.csv")
 EucDist <- read_csv("2_Data/sheet/DistMatrix.csv")
 villageGridID <- read_csv("2_Data/sheet/VillageGridIDs.csv")
 
 EucDist <- EucDist[c("src", "nbr", "EucDist")] %>% filter(EucDist>0) #filter to remove self intersections #
 EucDist$inverseDist <- (1/EucDist$EucDist)
 
-colnames(ClimImpacts)[colnames(ClimImpacts)=="ID"]<-"nbr"
-EucDist <- merge(EucDist, ClimImpacts, by = "nbr")
+colnames(ImpactsGRIDs)[colnames(ImpactsGRIDs)=="ID"]<-"nbr"
+EucDist <- merge(EucDist, ImpactsGRIDs, by = "nbr")
 
 #Visual checking of distribution
 hist(EucDist$inverseDist, breaks = 30)
@@ -138,7 +138,10 @@ plot(wio.com.idw.impacts$Cropland, wio.com.idw.impacts$sst90Int_ssp585)
 write_csv(wio.com.idw.impacts, "2_Data/sheet/3_VillageImpacts.csv")
 
 
-
+######################################################################################################################################################
+# NOW ANALYSE VILLAGE LEVEL RISK
+#####################################################################################################################################################
+#Import socio-economic data
 
 socioecom <- read_csv("2_Data/sheet/3_SocialVulnerability/SocialDataAll.csv")
 socioecom <- socioecom %>% mutate(ISO3 = Country,
@@ -174,13 +177,12 @@ ggplot(data = socioecom, aes(x="XS", y=Vulnerable,label=VillNation))+
         panel.border = element_blank())
 #ggsave("3_Outputs/plots/FigS3.png", width = 3, height = 4, dpi = 1200)
 
-
 ##################################################################################################################
 #                                  PLOT RISK SPACES
 ##################################################################################################################
 #Import climate data
 villageImpacts <- read_csv("2_Data/sheet/3_VillageImpacts.csv")
-riskMaster <- merge(socioecom, ClimImpacts, by ="Villages")
+riskMaster <- merge(socioecom, villageImpacts, by ="Villages")
 
 df <- rbind(data.frame(sce = "SSP2-4.5", impact = riskMaster$imp.ssp245.2050, Vulnerability = riskMaster$Vulnerable, village = riskMaster$Villages, ISO3 = riskMaster$ISO3),
             data.frame(sce = "SSP5-8.5", impact = riskMaster$imp.ssp585.2050, Vulnerability = riskMaster$Vulnerable, village = riskMaster$Villages, ISO3 = riskMaster$ISO3))
@@ -254,8 +256,8 @@ riskMaster <- riskMaster %>%
          rr.ssp585 = risk585*exp(-ic2020),
          rr.ssp370 = risk370*exp(-ic2020),
          rr.ssp245 = risk245*exp(-ic2020))
-mean(riskMaster$risk585, na.rm=TRUE);sd(riskMaster$risk585, na.rm=TRUE)
-mean(riskMaster$risk245, na.rm=TRUE);sd(riskMaster$risk245, na.rm=TRUE)
+summary(riskMaster$risk585, na.rm=TRUE);sd(riskMaster$risk585, na.rm=TRUE)
+summary(riskMaster$risk245, na.rm=TRUE);sd(riskMaster$risk245, na.rm=TRUE)
 
 df <- rbind(data.frame(sce = "SSP2-4.5", risk = (riskMaster$risk245), village = riskMaster$VillNation, ISO3 = riskMaster$ISO3, col = riskMaster$brk2),
             data.frame(sce = "SSP5-8.5", risk = (riskMaster$risk585), village = riskMaster$VillNation, ISO3 = riskMaster$ISO3, col = riskMaster$brk1))
@@ -338,11 +340,14 @@ riskMaster <- merge(riskMaster, econValues, by.x = "ISO3")
 riskMaster$TEV = ((riskMaster$CoralExt*riskMaster$CoralsVal)+(riskMaster$seagrassExt*riskMaster$SeagrassVal)+(riskMaster$mangroveExt*riskMaster$MangroveVal)+(riskMaster$Cropland*riskMaster$CropsVal))/1e4 #divide by 10000 to convert from meters to hectares
 plot(riskMaster$TEV/1e6, riskMaster$rr.ssp585)
 riskMaster$ld_ssp585 = riskMaster$TEV*riskMaster$rr.ssp585
+riskMaster$ld_ssp370 = riskMaster$TEV*riskMaster$rr.ssp370
 riskMaster$ld_ssp245 = riskMaster$TEV*riskMaster$rr.ssp245
 sum(riskMaster$ld_ssp585)
 
-dfs <- riskMaster[,c("ISO3","VillNation","Sensitivity","AdaptiveCapacity","imp.ssp245.2050","imp.ssp585.2050","rr.ssp245", "rr.ssp585","TEV", "ld_ssp585","ld_ssp245")]
-#write_excel_csv(dfs, "2_Data/sheet/TableS3.csv")
+dfs <- riskMaster[,c("ISO3","Villages","Sensitivity","AdaptiveCapacity","imp.ssp245.2050","imp.ssp370.2050","imp.ssp585.2050",
+                     "rr.ssp245","rr.ssp370","rr.ssp585","TEV","ld_ssp245","ld_ssp370","ld_ssp585")]
+write_excel_csv(dfs, "2_Data/sheet/TableS3.csv")
+
 library(ggthemes)
 library(ggrepel)
 ggplot()+
