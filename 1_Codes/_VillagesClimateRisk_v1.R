@@ -156,7 +156,8 @@ plot(socioecom$AdaptiveCapacity, exp(-socioecom$ic2020))
 library(ggthemes)
 library(ggrepel)
 socioecom$VillNation <- paste(socioecom$Villages, paste("(",socioecom$ISO3,")", sep = ""))
-socioecom$Vulnerable <- socioecom$Sensitivity/socioecom$AdaptiveCapacity
+socioecom$Vulnerable <- socioecom$Sensitivity*(1-socioecom$AdaptiveCapacity)
+
 ggplot(data = socioecom, aes(x="XS", y=Vulnerable,label=VillNation))+
   geom_boxplot(linewidth = 0.3)+
   geom_point(aes(colour = ISO3), position=position_jitter(width=.1, height=0))+
@@ -187,7 +188,7 @@ riskMaster <- merge(socioecom, villageImpacts, by ="Villages")
 df <- rbind(data.frame(sce = "SSP2-4.5", impact = riskMaster$imp.ssp245.2050, Vulnerability = riskMaster$Vulnerable, village = riskMaster$Villages, ISO3 = riskMaster$ISO3),
             data.frame(sce = "SSP5-8.5", impact = riskMaster$imp.ssp585.2050, Vulnerability = riskMaster$Vulnerable, village = riskMaster$Villages, ISO3 = riskMaster$ISO3))
 yR <- range(df$impact);xR <- range(df$Vulnerability)
-lgd <- expand.grid(x = seq(0.9,1.5, diff(xR)/1000),
+lgd <- expand.grid(x = seq(0,.5, diff(xR)/1000),
                    y = seq(0,1, diff(yR)/1000)) %>%
   mutate(x1 = scales::rescale(x),
          y1 = scales::rescale(y),
