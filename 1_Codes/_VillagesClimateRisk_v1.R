@@ -12,14 +12,14 @@ inormal <- function(x) {
 #Import PU and convert to a spatial object
 wio.AOO <- readRDS("2_Data/sheet/2_Ecosystems/wioAOO.rds")
 wio.AOO.spdf <- st_as_sf(wio.AOO, coords=c('x', 'y'), crs="+proj=longlat")
-#wio.ISO3 <- st_read("2_Data/shp/country_shape.shp") %>% st_as_sf() %>% st_transform(crs = "+proj=longlat")
 
 #LOAD METRICS
 (clim.nc <- list.files("./2_Data/raster",pattern='*.nc',full.names=TRUE))
 
 #Note that each NC file contains eight layers which is generally structured as SSP126_2050, SSP126_2100, SSP245_2050, SSP245_2100, SSP370_2050, SSP370_2100, SSP585_2050, SSP585_2100
 nc <- (as.data.frame(expand.grid(x=c(126,245,370,585), y=c(2050,2100))) %>% arrange(desc(-x)) %>% mutate(cbn = paste(x,y,sep = "_")) %>% dplyr::select(cbn))[,1]
-varlst <- c("cdd","evspsbl","npp","pH_trend","r10p","tap_trend","sst_trend","sst90p","ts_trend","ts90p","ts90Int","r10Int","sst90Int")
+varlst <- c("cdd","evspsbl","npp","pH_trend","r95p","tap_trend","sst_trend","sst90p","ts_trend","ts90p")
+#varlst <- c("cdd","r95p","sst90p","ts90p")
 allRaster <- lapply(1:length(varlst), function(x){
   rr <- raster::brick(clim.nc[grep(varlst[[x]], clim.nc)])
   names(rr) <- paste(varlst[[x]], nc, sep = "_")
@@ -53,7 +53,7 @@ QTtransform <- function(df,vlst,scenario,time){
     qrank <- ((rank(x, na.last = TRUE, ties.method= "random") - 0.5) / sum(!is.na(x)))
     z_score <- scales::rescale(sqrt(2)*pracma::erfinv(2*qrank-1))
     return(z_score)}
-  dfNmd <- xx %>% as.data.frame() %>% mutate(pH_trend = -1*pH_trend) %>% mutate(across(cdd:sst90Int, ~ inormal(.x)))
+  dfNmd <- xx %>% as.data.frame() %>% mutate(pH_trend = -1*pH_trend) %>% mutate(across(cdd:ts90p, ~ inormal(.x)))
   #Convert to wide format
   dfWide <- lapply(1:length(vlst), function(x){
     xv <- reshape2::dcast(dfNmd, ID ~ Scenario+Period, value.var= vlst[[x]])
@@ -101,24 +101,24 @@ namelist <- colnames(HazardExposures)
     
     mutate(
       #Deduce inverse variance weights
-      wgts.Exposure = (exp.sd.wioo/exp.mn.wioo)^-1,
-      wgts.ssp245.2050 = (hzd.sd.ssp245.2050/hzd.mn.ssp245.2050)^-1,
-      wgts.ssp370.2050 = (hzd.sd.ssp370.2050/hzd.mn.ssp370.2050)^-1,
-      wgts.ssp585.2050 = (hzd.sd.ssp585.2050/hzd.mn.ssp585.2050)^-1,
+      wgts.Exp = (exp.sd.wioo/exp.mn.wioo)^-1,
+      wgts.ssp245 = (hzd.sd.ssp245.2050/hzd.mn.ssp245.2050)^-1,
+      wgts.ssp370 = (hzd.sd.ssp370.2050/hzd.mn.ssp370.2050)^-1,
+      wgts.ssp585 = (hzd.sd.ssp585.2050/hzd.mn.ssp585.2050)^-1,
       
       #Estimate potential impacts
-      imp.ssp245.2050 = ((hzd.mn.ssp245.2050*wgts.ssp245.2050)*(exp.mn.wioo*wgts.Exposure))/(wgts.ssp245.2050+wgts.Exposure),
-      imp.ssp370.2050 = ((hzd.mn.ssp370.2050*wgts.ssp370.2050)*(exp.mn.wioo*wgts.Exposure))/(wgts.ssp370.2050+wgts.Exposure),
-      imp.ssp585.2050 = ((hzd.mn.ssp585.2050*wgts.ssp585.2050)*(exp.mn.wioo*wgts.Exposure))/(wgts.ssp585.2050+wgts.Exposure)
+      imp.ssp245.2050 = ((hzd.mn.ssp245.2050*wgts.ssp245)*(exp.mn.wioo*wgts.Exp))/(wgts.ssp245+wgts.Exp),
+      imp.ssp370.2050 = ((hzd.mn.ssp370.2050*wgts.ssp370)*(exp.mn.wioo*wgts.Exp))/(wgts.ssp370+wgts.Exp),
+      imp.ssp585.2050 = ((hzd.mn.ssp585.2050*wgts.ssp585)*(exp.mn.wioo*wgts.Exp))/(wgts.ssp585+wgts.Exp)
     ))
 hist(ClimImpacts$imp.ssp585.2050, breaks=30)
-write_csv(ClimImpacts, "2_Data/sheet/2_ClimateImpactsGRIDs.csv")
+write_csv(ClimImpacts, "2_Data/sheet/2_ImpactsGRIDs.csv")
 
 #########################################################################################################################################
 #Merge grid level impacts to the network
 #########################################################################################################################################
 
-ImpactsGRIDs <- read_csv("2_Data/sheet/2_ClimateImpactsGRIDs.csv")
+ImpactsGRIDs <- read_csv("2_Data/sheet/2_ImpactsGRIDs.csv")
 EucDist <- read_csv("2_Data/sheet/DistMatrix.csv")
 villageGridID <- read_csv("2_Data/sheet/VillageGridIDs.csv")
 
@@ -136,7 +136,6 @@ hist(EucDist$inverseDist, breaks = 30)
 (wio.com.idw.impacts <- merge(villageGridID, idw.impacts, by = "ID"))
 plot(wio.com.idw.impacts$Cropland, wio.com.idw.impacts$sst90Int_ssp585)
 write_csv(wio.com.idw.impacts, "2_Data/sheet/3_VillageImpacts.csv")
-
 
 ######################################################################################################################################################
 # NOW ANALYSE VILLAGE LEVEL RISK
@@ -156,7 +155,7 @@ plot(socioecom$AdaptiveCapacity, exp(-socioecom$ic2020))
 library(ggthemes)
 library(ggrepel)
 socioecom$VillNation <- paste(socioecom$Villages, paste("(",socioecom$ISO3,")", sep = ""))
-socioecom$Vulnerable <- socioecom$Sensitivity*(1-socioecom$AdaptiveCapacity)
+socioecom$Vulnerable <- scales::rescale(socioecom$Sensitivity/((socioecom$AdaptiveCapacity*(socioecom$ic2020))), to=c(0.1,1))
 
 ggplot(data = socioecom, aes(x="XS", y=Vulnerable,label=VillNation))+
   geom_boxplot(linewidth = 0.3)+
@@ -188,7 +187,7 @@ riskMaster <- merge(socioecom, villageImpacts, by ="Villages")
 df <- rbind(data.frame(sce = "SSP2-4.5", impact = riskMaster$imp.ssp245.2050, Vulnerability = riskMaster$Vulnerable, village = riskMaster$Villages, ISO3 = riskMaster$ISO3),
             data.frame(sce = "SSP5-8.5", impact = riskMaster$imp.ssp585.2050, Vulnerability = riskMaster$Vulnerable, village = riskMaster$Villages, ISO3 = riskMaster$ISO3))
 yR <- range(df$impact);xR <- range(df$Vulnerability)
-lgd <- expand.grid(x = seq(0,.5, diff(xR)/1000),
+lgd <- expand.grid(x = seq(0,1, diff(xR)/1000),
                    y = seq(0,1, diff(yR)/1000)) %>%
   mutate(x1 = scales::rescale(x),
          y1 = scales::rescale(y),
@@ -202,11 +201,11 @@ lgd$brks <- factor(lgd$brks, levels = c("Low","Medium","High","Very high"))
     geom_raster(data = lgd, aes(x = x, y = y, fill = brks))+
     #scale_fill_manual(values = c("Low" = "grey90", "Medium" = "grey80", "High"="grey70", "Very high" = "grey60"))+
     scale_fill_manual(values = c("Low" = "#d3d3d3", "Medium" = "#a88283", "High"="#7e433e", "Very high" = "#551601"))+
-    geom_point(data = df, aes(x = Vulnerability, y = impact, shape=sce)) +
+    geom_point(data = df, aes(x = Vulnerability, y = impact, shape=sce), size = .5) +
     labs(y = "Climate change impacts [Index]", x = "", title = "a. RISK SPACE")+
-    scale_y_continuous(expand = c(0,0), breaks = seq(.3,1,.1))+
+    scale_y_continuous(expand = c(0,0), breaks = seq(0,1,.1))+
+    scale_x_continuous(expand = c(0,0), breaks = seq(0,1,.1))+ 
     theme_bw(base_size = 8)+
-    scale_x_continuous(expand = c(0,0))+
     scale_shape_manual(values = c("SSP2-4.5" = 1, "SSP5-8.5" = 2))+
     guides(shape="none", colour = "none")+
     theme(legend.position = "none",
@@ -223,8 +222,8 @@ lgd$brks <- factor(lgd$brks, levels = c("Low","Medium","High","Very high"))
     #scale_fill_manual(values = c("Low" = "grey90", "Medium" = "grey80", "High"="grey70", "Very high" = "grey60"))+
     scale_fill_manual(values = c("Low" = "#d3d3d3", "Medium" = "#a88283", "High"="#7e433e", "Very high" = "#551601"))+
     labs(y = "", x = "", title = "b. OPTION SPACE")+
-    scale_y_continuous(expand = c(0,0), breaks = seq(.3,1, .1), position = "right")+
-    scale_x_continuous(expand = c(0,0))+ 
+    scale_y_continuous(expand = c(0,0), breaks = seq(0,1,.1), position = "right")+
+    scale_x_continuous(expand = c(0,0), breaks = seq(0,1,.1))+ 
     theme_bw(base_size = 8)+
     guides(shape="none", colour = "none")+
     theme(legend.position = "bottom",
@@ -252,11 +251,9 @@ riskMaster <- riskMaster %>%
   mutate(risk585 = (imp.ssp585.2050*Vulnerable),
          risk370 = (imp.ssp370.2050*Vulnerable),
          risk245 = (imp.ssp245.2050*Vulnerable),
-         brk1 = (scales::rescale(imp.ssp585.2050)^2*scales::rescale(Vulnerable)^2),
-         brk2 = (scales::rescale(imp.ssp245.2050)^2*scales::rescale(Vulnerable)^2),
-         rr.ssp585 = risk585*exp(-ic2020),
-         rr.ssp370 = risk370*exp(-ic2020),
-         rr.ssp245 = risk245*exp(-ic2020))
+         brk1 = (imp.ssp585.2050^2)*(Vulnerable^2),
+         brk2 = (imp.ssp245.2050^2)*(Vulnerable^2))
+
 summary(riskMaster$risk585, na.rm=TRUE);sd(riskMaster$risk585, na.rm=TRUE)
 summary(riskMaster$risk245, na.rm=TRUE);sd(riskMaster$risk245, na.rm=TRUE)
 
@@ -266,18 +263,17 @@ Q1 <- summary(df$risk)[[2]] #first quartile
 Q3 <- summary(df$risk)[[5]] #third quartile
 
 (xx <- (lgd %>% group_by(brks) %>% summarise(mx = max(mxCol, na.rm = TRUE)))[2])
-df$brks <- ifelse(df$col < 0.00457, "Low", ifelse(df$col <  0.0348, "Medium", ifelse(df$col < 0.146,"High","Very high")))
+df$brks <- ifelse(df$col < xx[[1]][1], "Low", ifelse(df$col <  xx[[1]][2], "Medium", ifelse(df$col < xx[[1]][3],"High","Very high")))
 (plt2 <- ggplot(data = df)+
     #geom_rect(fill = "grey90", xmin = -Inf, xmax = Inf, ymin = -Inf, ymax = .33)+http://127.0.0.1:13755/graphics/plot_zoom_png?width=3072&height=1223
     #geom_rect(fill = "grey80", xmin = -Inf, xmax = Inf, ymin = .33, ymax = .66)+
     #geom_rect(fill = "grey70", xmin = -Inf, xmax = Inf, ymin = .66, ymax = Inf)+
     geom_point(aes(x=reorder(village,risk), y=risk, colour = brks, shape = sce), size = 1, position = position_dodge2(width =.5))+
     labs(x = "Villages", y = "Climate risk", title = "c. RISK SCORE")+
-    scale_y_continuous(expand = c(0,0), limits = c(.3,1), breaks = seq(.3,1, .1))+
+    scale_y_continuous(expand = c(0,0), limits = c(0,1), breaks = seq(0,1, .1))+
     scale_shape_manual("", values = c("SSP2-4.5" = 1, "SSP5-8.5" = 2))+
     theme_classic(base_size = 8)+
     scale_colour_manual(values = c("Low" = "#d3d3d3", "Medium" = "#a88283", "High"="#7e433e", "Very high" = "#551601"))+
-    #scale_colour_manual(values = c("Low" = "grey90", "Medium" = "grey80", "High"="grey70", "Very high" = "grey60"))+
     guides(colour = "none")+
     theme(legend.position = c(0.1,.9), 
           legend.text = element_text(size = 5),
@@ -286,50 +282,46 @@ df$brks <- ifelse(df$col < 0.00457, "Low", ifelse(df$col <  0.0348, "Medium", if
           axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1),
           axis.line = element_line(linewidth = .1), 
           axis.ticks = element_line(linewidth = .1)))
-
 ggsave(plot = plt2, "3_Outputs/plots/Fig2b.png", dpi = 1200, height = 3, width = 4)
 
 #Plots bars for each country
-# df1 <- dfRisk %>% group_by(ISO3) %>% 
-#   summarise(mn.370 = mean(rr.ssp370),
-#             sd.370 = sd(rr.ssp370),
-#             mn.245 = mean(rr.ssp245),
-#             sd.245 = sd(rr.ssp245)) %>% ungroup()
-# 
-# df2 <- dfRisk %>% 
-#   summarise(mn.370 = mean(rr.ssp370),
-#             sd.370 = sd(rr.ssp370),
-#             mn.245 = mean(rr.ssp245),
-#             sd.245 = sd(rr.ssp245)) 
-# df2 <- cbind(ISO3 = "ALL", df2)
-# df <- rbind(df1, df2)
-# 
-# df <- rbind(data.frame(sce = "SSP2-4.5", MN = df$mn.245, LL = df$mn.245-df$sd.245, UL = df$mn.245+df$sd.245, ISO3 = df$ISO3),
-#             data.frame(sce = "SSP3-7.0", MN = df$mn.370, LL = df$mn.370-df$sd.370, UL = df$mn.370+df$sd.370, ISO3 = df$ISO3)) %>% group_by (ISO3) %>% mutate(sortMag = mean(MN))
-# (plt3 <- ggplot(data = df)+
-#     geom_rect(fill = "grey90", xmin = -Inf, xmax = Inf, ymin = -Inf, ymax = Q1)+
-#     geom_rect(fill = "grey80", xmin = -Inf, xmax = Inf, ymin = Q1, ymax = Q3)+
-#     geom_rect(fill = "grey70", xmin = -Inf, xmax = Inf, ymin = Q3, ymax = Inf)+
-#     geom_pointrange(aes(x = reorder(ISO3, sortMag), y = MN, ymin = LL, ymax = UL, colour=ISO3, shape = sce),
-#                     size=.1, linewidth = .2, position = position_dodge(width =.5))+
-#     scale_colour_manual(name="", values = c("KEN"="darkred","MDG"="yellow","MOZ"="dodgerblue4","TZA"="grey50", "ALL"="cyan"))+
-#     scale_shape_manual(values = c("SSP2-4.5" = 19, "SSP3-7.0" = 17))+
-#     labs(y = "", x="", title = "(B)")+
-#     #scale_y_continuous(expand = c(0,0), limits = c(.25,.55), breaks = seq(.25,.55, 0.05),position = "right")+
-#     theme_classic(base_size = 10)+
-#     theme(legend.position = "", 
-#           panel.background = element_rect(fill = "transparent", colour = NA),
-#           plot.background = element_rect(fill = "transparent"),
-#           axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1),
-#           axis.line.y = element_blank(),
-#           axis.text.y = element_blank(),
-#           axis.ticks.y = element_blank(),
-#           panel.border = element_blank(), 
-#           axis.line = element_line(linewidth = .1), 
-#           axis.ticks.x = element_line(linewidth = .1)))
-#library(patchwork)
+df1 <- riskMaster %>% group_by(ISO3) %>%
+  summarise(mn.585 = mean(risk585),
+            sd.585 = sd(risk585),
+            mn.245 = mean(risk245),
+            sd.245 = sd(risk245)) %>% ungroup()
 
+df2 <- riskMaster %>%
+  summarise(mn.585 = mean(risk585),
+            sd.585 = sd(risk585),
+            mn.245 = mean(risk245),
+            sd.245 = sd(risk245))
+df2 <- cbind(ISO3 = "ALL", df2)
+df <- rbind(df1, df2)
 
+df <- rbind(data.frame(sce = "SSP2-4.5", MN = df$mn.245, LL = df$mn.245-df$sd.245, UL = df$mn.245+df$sd.245, ISO3 = df$ISO3),
+            data.frame(sce = "SSP5-8.5", MN = df$mn.585, LL = df$mn.585-df$sd.585, UL = df$mn.585+df$sd.585, ISO3 = df$ISO3)) %>% group_by (ISO3) %>% mutate(sortMag = mean(MN))
+(plt3 <- ggplot(data = df)+
+    # geom_rect(fill = "grey90", xmin = -Inf, xmax = Inf, ymin = -Inf, ymax = Q1)+
+    # geom_rect(fill = "grey80", xmin = -Inf, xmax = Inf, ymin = Q1, ymax = Q3)+
+    # geom_rect(fill = "grey70", xmin = -Inf, xmax = Inf, ymin = Q3, ymax = Inf)+
+    geom_pointrange(aes(x = reorder(ISO3, sortMag), y = MN, ymin = LL, ymax = UL, colour=ISO3, shape = sce),size=.5, linewidth = .2, position = position_dodge(width =.5))+
+    scale_colour_manual(name="", values = c("KEN"="darkred","MDG"="yellow","MOZ"="dodgerblue4","TZA"="grey50", "ALL"="cyan"))+
+    scale_shape_manual(values = c("SSP2-4.5" = 19, "SSP5-8.5" = 17))+
+    labs(y = "", x="", title = "")+
+    scale_y_continuous(name = "Climate risk [index]", expand = c(0,0), limits = c(0,1), breaks = seq(0,1, .1))+
+    theme_classic(base_size = 14)+
+    theme(legend.position = "",
+          panel.background = element_rect(fill = "transparent", colour = NA),
+          plot.background = element_rect(fill = "transparent"),
+          axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1),
+          #axis.line.y = element_blank(),
+          #axis.text.y = element_blank(),
+          #axis.ticks.y = element_blank(),
+          panel.border = element_blank(),
+          axis.line = element_line(linewidth = .1),
+          axis.ticks.x = element_line(linewidth = .1)))
+ggsave(plot = plt3, "3_Outputs/plots/FigS3.png", dpi = 1200, height = 4, width = 4)
 ###################################################################################################################
 #                     ECONOMIC VALUATION APPROACHES
 ##################################################################################################################
@@ -339,14 +331,14 @@ econValues <- readxl::read_excel("2_Data/sheet/4_EconomicValuations/EcosystemSer
 riskMaster <- merge(riskMaster, econValues, by.x = "ISO3")
 #Find total economic value
 riskMaster$TEV = ((riskMaster$CoralExt*riskMaster$CoralsVal)+(riskMaster$seagrassExt*riskMaster$SeagrassVal)+(riskMaster$mangroveExt*riskMaster$MangroveVal)+(riskMaster$Cropland*riskMaster$CropsVal))/1e4 #divide by 10000 to convert from meters to hectares
-plot(riskMaster$TEV/1e6, riskMaster$rr.ssp585)
-riskMaster$ld_ssp585 = riskMaster$TEV*riskMaster$rr.ssp585
-riskMaster$ld_ssp370 = riskMaster$TEV*riskMaster$rr.ssp370
-riskMaster$ld_ssp245 = riskMaster$TEV*riskMaster$rr.ssp245
+plot(riskMaster$TEV/1e6, riskMaster$risk585)
+riskMaster$ld_ssp585 = riskMaster$TEV*riskMaster$risk585
+riskMaster$ld_ssp370 = riskMaster$TEV*riskMaster$risk370
+riskMaster$ld_ssp245 = riskMaster$TEV*riskMaster$risk245
 sum(riskMaster$ld_ssp585)
 
 dfs <- riskMaster[,c("ISO3","Villages","Sensitivity","AdaptiveCapacity","imp.ssp245.2050","imp.ssp370.2050","imp.ssp585.2050",
-                     "rr.ssp245","rr.ssp370","rr.ssp585","TEV","ld_ssp245","ld_ssp370","ld_ssp585")]
+                     "risk245","risk370","risk585","TEV","ld_ssp245","ld_ssp370","ld_ssp585")]
 write_excel_csv(dfs, "2_Data/sheet/TableS3.csv")
 
 library(ggthemes)
@@ -361,25 +353,24 @@ ggplot()+
   theme(legend.position = "none", 
         legend.title = element_blank())
 ggsave("3_Outputs/plots/potentialloss.png", dpi = 1200, width = 2.39, height = 5.84)
-
-(rr1 <- ggplot()+
-    geom_boxplot(data = dfs, aes(x="SSP2-4.5", y=ld_ssp245/1e6, fill = "SSP2-4.5"), linewidth =0.5)+
-    geom_boxplot(data = dfs, aes(x="SSP5-8.5", y=ld_ssp585/1e6, fill = "SSP5-8.5"), linewidth =0.5)+
-    labs(y = "", x = "")+
-    scale_fill_manual(values = c("SSP2-4.5" = "darkgreen", "SSP5-8.5" = "darkred"))+
-    theme_bw(base_size = 10)+coord_flip()+
-    guides(colour = "none")+
-    theme(legend.position = "none",
-        legend.title = element_blank(),
-        legend.background = element_rect(fill = NA),
-        legend.key.size = unit(1, 'cm'),
-        #axis.text.x = element_blank(),
-        panel.grid.minor = element_blank(),
-        panel.grid.major.x = element_blank(),
-        legend.text = element_text(size = 8),
-        legend.key.height = unit(.1, 'cm'),
-        legend.key.width = unit(.2, 'cm'), 
-        panel.border = element_blank(),plot.margin = unit(c(0,0,0,-5.5), "mm")))
+# (rr1 <- ggplot()+
+#     geom_boxplot(data = dfs, aes(x="SSP2-4.5", y=ld_ssp245/1e6, fill = "SSP2-4.5"), linewidth =0.5)+
+#     geom_boxplot(data = dfs, aes(x="SSP5-8.5", y=ld_ssp585/1e6, fill = "SSP5-8.5"), linewidth =0.5)+
+#     labs(y = "", x = "")+
+#     scale_fill_manual(values = c("SSP2-4.5" = "darkgreen", "SSP5-8.5" = "darkred"))+
+#     theme_bw(base_size = 10)+coord_flip()+
+#     guides(colour = "none")+
+#     theme(legend.position = "none",
+#         legend.title = element_blank(),
+#         legend.background = element_rect(fill = NA),
+#         legend.key.size = unit(1, 'cm'),
+#         #axis.text.x = element_blank(),
+#         panel.grid.minor = element_blank(),
+#         panel.grid.major.x = element_blank(),
+#         legend.text = element_text(size = 8),
+#         legend.key.height = unit(.1, 'cm'),
+#         legend.key.width = unit(.2, 'cm'), 
+#         panel.border = element_blank(),plot.margin = unit(c(0,0,0,-5.5), "mm")))
 
 yq2<- summary(dfs$rr.ssp585)[2]
 xq2<- summary(dfs$TEV/1e6)[3]
