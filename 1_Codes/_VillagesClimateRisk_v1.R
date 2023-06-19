@@ -347,16 +347,31 @@ write_excel_csv(dfs, "3_Outputs/sheets/TableS3.csv")
 
 library(ggthemes)
 library(ggrepel)
-ggplot()+
-  geom_boxplot(data = dfs, aes(x="SSP2-4.5", y=ld_ssp245/1e6, fill = "SSP2-4.5"), linewidth =0.5)+
-  geom_boxplot(data = dfs, aes(x="SSP5-8.5", y=ld_ssp585/1e6, fill = "SSP5-8.5"), linewidth =0.5)+
+(xx <- rbind(
+  data.frame(value=dfs$ld_ssp245, sce = "SSP2-4.5", villages=dfs$Villages, ISO3 = dfs$ISO3),
+  data.frame(value=dfs$ld_ssp370, sce = "SSP3-7.0", villages=dfs$Villages, ISO3 = dfs$ISO3),
+  data.frame(value=dfs$ld_ssp585, sce = "SSP5-8.5", villages=dfs$Villages, ISO3 = dfs$ISO3)
+  ))
+
+ggplot(data = xx, aes(x = sce, y=value/1e6,label=villages))+
+  geom_boxplot(linewidth =0.1)+
+  #geom_point(aes(colour = ISO3), sizw= .3,position=position_jitter(width=.1, height=0))+
+  #scale_colour_manual(name="", values = c("KEN"="darkred","MDG"="yellow","MOZ"="dodgerblue4","TZA"="grey"))+
+  #geom_text_repel(size = 1)+
   scale_y_continuous("Potential loss & damages (Million US$/year)")+
   scale_x_discrete("")+
-  scale_fill_manual(values = c("SSP2-4.5" = "darkgreen", "SSP5-8.5" = "darkred"))+
-  #theme_minimal(base_size = 14)+
-  theme(legend.position = "none", 
-        legend.title = element_blank())
-ggsave("3_Outputs/plots/FigS4.png", dpi = 1200, width = 2.39, height = 5.84)
+  theme_classic(base_size = 12)+
+  guides(shape="none", colour = "none")+
+  theme(legend.position = "none",
+        legend.title = element_blank(),
+        legend.background = element_rect(fill = NA),
+        legend.key.size = unit(1, 'cm'),
+        axis.text.x = element_text(hjust = 1,angle = 45),
+        panel.grid.minor = element_blank(),
+        axis.line = element_line(linewidth = .1),
+        axis.ticks = element_line(linewidth = .1)
+  )
+ggsave("3_Outputs/plots/FigS4.png", dpi = 1200, width = 3, height = 6)
 
 
 # (rr1 <- ggplot()+
@@ -412,10 +427,11 @@ custom_pal3 <- c(
     labs(y = "Potential residual risk", x = "Total Economic Value (Million US$/year)")+
     #scale_colour_manual(name="", values = c("KEN"="darkred","MDG"="yellow","MOZ"="dodgerblue4","TZA"="cyan"))+
     theme_bw(base_size = 12)+
-    scale_x_continuous(expand = c(0,0))+scale_y_continuous(expand = c(0,0))+
+    scale_x_continuous(expand = c(0,0), breaks = seq(0,7,1))+
+    scale_y_continuous(expand = c(0,0), breaks = seq(0,1,.2))+
     scale_shape_manual(values = c("SSP2-4.5" = 1, "SSP5-8.5" = 2))+
     guides(fill="none", colour = "none")+
-    theme(legend.position = "bottom",
+    theme(legend.position = "none",
           legend.title = element_blank(),
           legend.background = element_rect(fill = NA),
           legend.key.size = unit(1, 'cm'),
@@ -424,12 +440,10 @@ custom_pal3 <- c(
           legend.key.width = unit(.2, 'cm'), 
           panel.border = element_blank()))
 
-
-#legNtake<-ggExtra::ggMarginal(legNtake, type="histogram", col="grey30", fill="white", size = 3)
-densLUI <- ggplot(data = dataFig3PAs[!is.na(dataFig3PAs$iucn),],aes(x = resLUI)) + 
-  geom_histogram(color = "grey10", fill = "white", size = .5) + 
-  scale_x_continuous(expand = c(0,0))+theme_void()+theme(plot.margin = unit(c(0,0,0,-5.5), "mm"))
-
-library(patchwork)
-(legxx <- rr1/plt1 + plot_layout(ncol =1,heights = c(.5, 4)))
-ggsave("3_Outputs/plots/L&D22.png", width = 4, height = 5, dpi = 1200)
+# #legNtake<-ggExtra::ggMarginal(legNtake, type="histogram", col="grey30", fill="white", size = 3)
+# densLUI <- ggplot(data = dataFig3PAs[!is.na(dataFig3PAs$iucn),],aes(x = resLUI)) + 
+#   geom_histogram(color = "grey10", fill = "white", size = .5) + 
+#   scale_x_continuous(expand = c(0,0))+theme_void()+theme(plot.margin = unit(c(0,0,0,-5.5), "mm"))
+# library(patchwork)
+# (legxx <- rr1/plt1 + plot_layout(ncol =1,heights = c(.5, 4)))
+ggsave(plot = plt1,"3_Outputs/plots/Fig3.png", width = 5, height = 5, dpi = 1200)
