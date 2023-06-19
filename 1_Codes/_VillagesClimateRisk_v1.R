@@ -162,8 +162,8 @@ ggplot(data = socioecom, aes(x="XS", y=Vulnerable,label=VillNation))+
   geom_point(aes(colour = ISO3), position=position_jitter(width=.1, height=0))+
   scale_colour_manual(name="", values = c("KEN"="darkred","MDG"="yellow","MOZ"="dodgerblue4","TZA"="grey"))+
   geom_text_repel(size = 1)+
-  labs(y = "Social vulnerability", x = "")+
-  theme_bw(base_size = 15)+
+  scale_y_continuous(name = "Social vulnerability", expand = c(0,0), limits = c(0,1.02),breaks = seq(0,1,.2))+ labs(x = "")+
+  theme_classic(base_size = 14)+
   guides(shape="none", colour = "none")+
   theme(legend.position = "none",
         legend.title = element_blank(),
@@ -174,8 +174,12 @@ ggplot(data = socioecom, aes(x="XS", y=Vulnerable,label=VillNation))+
         legend.text = element_text(size = 8),
         legend.key.height = unit(.1, 'cm'),
         legend.key.width = unit(.2, 'cm'), 
-        panel.border = element_blank())
-#ggsave("3_Outputs/plots/FigS3.png", width = 3, height = 4, dpi = 1200)
+        axis.line.x = element_blank(),
+        axis.ticks.x = element_blank(),
+        axis.line.y = element_line(linewidth = .1),
+        axis.ticks.y = element_line(linewidth = .1)
+        )
+ggsave("3_Outputs/plots/FigS2.png", width = 4, height = 5, dpi = 1200)
 
 ##################################################################################################################
 #                                  PLOT RISK SPACES
@@ -270,7 +274,7 @@ df$brks <- ifelse(df$col < xx[[1]][1], "Low", ifelse(df$col <  xx[[1]][2], "Medi
     #geom_rect(fill = "grey70", xmin = -Inf, xmax = Inf, ymin = .66, ymax = Inf)+
     geom_point(aes(x=reorder(village,risk), y=risk, colour = brks, shape = sce), size = 1, position = position_dodge2(width =.5))+
     labs(x = "Villages", y = "Climate risk", title = "c. RISK SCORE")+
-    scale_y_continuous(expand = c(0,0), limits = c(0,1), breaks = seq(0,1, .1))+
+    scale_y_continuous(expand = c(0,0), limits = c(0,1), breaks = seq(0,1,.2))+
     scale_shape_manual("", values = c("SSP2-4.5" = 1, "SSP5-8.5" = 2))+
     theme_classic(base_size = 8)+
     scale_colour_manual(values = c("Low" = "#d3d3d3", "Medium" = "#a88283", "High"="#7e433e", "Very high" = "#551601"))+
@@ -309,11 +313,11 @@ df <- rbind(data.frame(sce = "SSP2-4.5", MN = df$mn.245, LL = df$mn.245-df$sd.24
     scale_colour_manual(name="", values = c("KEN"="darkred","MDG"="yellow","MOZ"="dodgerblue4","TZA"="grey50", "ALL"="cyan"))+
     scale_shape_manual(values = c("SSP2-4.5" = 19, "SSP5-8.5" = 17))+
     labs(y = "", x="", title = "")+
-    scale_y_continuous(name = "Climate risk [index]", expand = c(0,0), limits = c(0,1), breaks = seq(0,1, .1))+
-    theme_classic(base_size = 14)+
+    scale_y_continuous(name = "Climate risk [index]", expand = c(0,0), limits = c(0,1), breaks = seq(0,1,.2))+
+    theme_classic(base_size = 12)+
     theme(legend.position = "",
-          panel.background = element_rect(fill = "transparent", colour = NA),
-          plot.background = element_rect(fill = "transparent"),
+          #panel.background = element_rect(fill = "transparent", colour = NA),
+          #plot.background = element_rect(fill = "transparent"),
           axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1),
           #axis.line.y = element_blank(),
           #axis.text.y = element_blank(),
@@ -339,7 +343,7 @@ sum(riskMaster$ld_ssp585)
 
 dfs <- riskMaster[,c("ISO3","Villages","Sensitivity","AdaptiveCapacity","imp.ssp245.2050","imp.ssp370.2050","imp.ssp585.2050",
                      "risk245","risk370","risk585","TEV","ld_ssp245","ld_ssp370","ld_ssp585")]
-write_excel_csv(dfs, "2_Data/sheet/TableS3.csv")
+write_excel_csv(dfs, "3_Outputs/sheets/TableS3.csv")
 
 library(ggthemes)
 library(ggrepel)
@@ -352,7 +356,9 @@ ggplot()+
   #theme_minimal(base_size = 14)+
   theme(legend.position = "none", 
         legend.title = element_blank())
-ggsave("3_Outputs/plots/potentialloss.png", dpi = 1200, width = 2.39, height = 5.84)
+ggsave("3_Outputs/plots/FigS4.png", dpi = 1200, width = 2.39, height = 5.84)
+
+
 # (rr1 <- ggplot()+
 #     geom_boxplot(data = dfs, aes(x="SSP2-4.5", y=ld_ssp245/1e6, fill = "SSP2-4.5"), linewidth =0.5)+
 #     geom_boxplot(data = dfs, aes(x="SSP5-8.5", y=ld_ssp585/1e6, fill = "SSP5-8.5"), linewidth =0.5)+
@@ -372,30 +378,40 @@ ggsave("3_Outputs/plots/potentialloss.png", dpi = 1200, width = 2.39, height = 5
 #         legend.key.width = unit(.2, 'cm'), 
 #         panel.border = element_blank(),plot.margin = unit(c(0,0,0,-5.5), "mm")))
 
-yq2<- summary(dfs$rr.ssp585)[2]
+yq2<- summary(dfs$risk585)[2]
 xq2<- summary(dfs$TEV/1e6)[3]
 #Plot
-yR <- range(dfs$rr.ssp585);xR <- range(dfs$TEV/1e6)
+yR <- range(dfs$risk585);xR <- range(dfs$TEV/1e6)
 lgd <- expand.grid(x = seq(1,7.5, diff(xR)/150),
                    y = seq(0,1, diff(yR)/150)) %>% 
   mutate(x1 = ifelse(x<4.25,1,2),
-         y1 = ifelse(y<0.5,1,2)
+         y1 = ifelse(y<0.33,1,ifelse(y<0.66,2,3))
   )
 
+# custom_pal3 <- c(
+#   "1-1" = "#d3d3d3", # low x, low y
+#   "1-2" = "#9e3547", # high x, low y
+#   "2-1" = "#4279b0", # low x, high y
+#   "2-2" = "#311e3b" # high x, high y
+# )
+
 custom_pal3 <- c(
-  "1-1" = "#d3d3d3", # low x, low y
-  "1-2" = "#9e3547", # high x, low y
-  "2-1" = "#4279b0", # low x, high y
-  "2-2" = "#311e3b" # high x, high y
+  "1-1" = "#d3d3d3",
+  "2-1" = "#ba8890",
+  "3-1" = "#9e3547",
+  "1-2" = "#4279b0",
+  "2-2" = "#3a4e78",
+  "3-2" = "#311e3b"
 )
+
 (plt1 <- ggplot()+
-    geom_raster(data = lgd, aes(x = x, y = y, fill = paste(x1,y1,sep="-")))+
+    geom_raster(data = lgd, aes(x = x, y = y, fill = paste(y1,x1,sep="-")))+
     scale_fill_manual(values = custom_pal3)+
-    geom_point(data = dfs, aes(x = TEV/1e6, y = rr.ssp585, shape = "SSP5-8.5"), size = 1.5) +
-    geom_point(data = dfs, aes(x = TEV/1e6, y = rr.ssp245, shape = "SSP2-4.5"), size = 1.5) +
+    geom_point(data = dfs, aes(x = TEV/1e6, y = risk585 , shape = "SSP5-8.5"), size = 1.5) +
+    #geom_point(data = dfs, aes(x = TEV/1e6, y = rr.ssp245, shape = "SSP2-4.5"), size = 1.5) +
     labs(y = "Potential residual risk", x = "Total Economic Value (Million US$/year)")+
     #scale_colour_manual(name="", values = c("KEN"="darkred","MDG"="yellow","MOZ"="dodgerblue4","TZA"="cyan"))+
-    theme_bw(base_size = 10)+
+    theme_bw(base_size = 12)+
     scale_x_continuous(expand = c(0,0))+scale_y_continuous(expand = c(0,0))+
     scale_shape_manual(values = c("SSP2-4.5" = 1, "SSP5-8.5" = 2))+
     guides(fill="none", colour = "none")+
