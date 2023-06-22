@@ -288,53 +288,56 @@ df$brks <- ifelse(df$col < xx[[1]][1], "Low", ifelse(df$col <  xx[[1]][2], "Medi
           axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1),
           axis.line = element_line(linewidth = .1), 
           axis.ticks = element_line(linewidth = .1)))
-ggsave(plot = plt2, "3_Outputs/plots/Fig2b.png", dpi = 1200, height = 3, width = 4)
+#ggsave(plot = plt2, "3_Outputs/plots/Fig2b.png", dpi = 1200, height = 3, width = 4)
 
 #Plots bars for each country
-df1 <- riskMaster %>% group_by(ISO3) %>%
-  summarise(mn.585 = mean(risk585),
-            sd.585 = sd(risk585),
-            mn.370 = mean(risk370),
-            sd.370 = sd(risk370),
-            mn.245 = mean(risk245),
-            sd.245 = sd(risk245)) %>% ungroup()
+# df1 <- riskMaster %>% group_by(ISO3) %>%
+#   summarise(mn.585 = mean(risk585),
+#             sd.585 = sd(risk585),
+#             mn.370 = mean(risk370),
+#             sd.370 = sd(risk370),
+#             mn.245 = mean(risk245),
+#             sd.245 = sd(risk245)) %>% ungroup()
+# 
+# df2 <- riskMaster %>%
+#   summarise(mn.585 = mean(risk585),
+#             sd.585 = sd(risk585),
+#             mn.370 = mean(risk370),
+#             sd.370 = sd(risk370),
+#             mn.245 = mean(risk245),
+#             sd.245 = sd(risk245))
+# df2 <- cbind(ISO3 = "ALL", df2)
+# df <- rbind(df1, df2)
 
-df2 <- riskMaster %>%
-  summarise(mn.585 = mean(risk585),
-            sd.585 = sd(risk585),
-            mn.370 = mean(risk370),
-            sd.370 = sd(risk370),
-            mn.245 = mean(risk245),
-            sd.245 = sd(risk245))
-df2 <- cbind(ISO3 = "ALL", df2)
-df <- rbind(df1, df2)
-
-df <- rbind(data.frame(sce = "SSP2-4.5", MN = df$mn.245, LL = df$mn.245-df$sd.245, UL = df$mn.245+df$sd.245, ISO3 = df$ISO3),
-            data.frame(sce = "SSP3-7.0", MN = df$mn.370, LL = df$mn.370-df$sd.370, UL = df$mn.370+df$sd.370, ISO3 = df$ISO3),
-            data.frame(sce = "SSP5-8.5", MN = df$mn.585, LL = df$mn.585-df$sd.585, UL = df$mn.585+df$sd.585, ISO3 = df$ISO3)) %>% group_by (ISO3) %>% mutate(sortMag = mean(MN))
+df <- rbind(data.frame(sce = "SSP2-4.5", MN = riskMaster$risk245, ISO3 = df$ISO3),
+            data.frame(sce = "SSP3-7.0", MN = riskMaster$risk370, ISO3 = df$ISO3),
+            data.frame(sce = "SSP5-8.5", MN = riskMaster$risk585, ISO3 = df$ISO3)) %>% group_by (ISO3) %>% mutate(sortMag = mean(MN))
 (plt3 <- ggplot(data = df)+
-    # geom_rect(fill = "grey90", xmin = -Inf, xmax = Inf, ymin = -Inf, ymax = Q1)+
-    # geom_rect(fill = "grey80", xmin = -Inf, xmax = Inf, ymin = Q1, ymax = Q3)+
-    # geom_rect(fill = "grey70", xmin = -Inf, xmax = Inf, ymin = Q3, ymax = Inf)+
-    geom_pointrange(aes(x = reorder(ISO3, sortMag), y = MN, ymin = LL, ymax = UL, colour=ISO3, shape = sce),size=.5, linewidth = .2, position = position_dodge(width =.5))+
-    scale_colour_manual(name="", values = c("KEN"="darkred","MDG"="yellow","MOZ"="dodgerblue4","TZA"="grey50", "ALL"="cyan"))+
-    scale_shape_manual(values = c("SSP2-4.5" = 1, "SSP3-7.0"=0,"SSP5-8.5" = 2))+
+    geom_rect(fill = "grey90", xmin = -Inf, xmax = Inf, ymin = -Inf, ymax = .33)+
+    geom_rect(fill = "grey80", xmin = -Inf, xmax = Inf, ymin = .33, ymax = .66)+
+    geom_rect(fill = "grey70", xmin = -Inf, xmax = Inf, ymin = .66, ymax = Inf)+
+    geom_boxplot(aes(x = reorder(ISO3, sortMag), y = MN, fill = sce),linewidth = .1, position = position_dodge(width =.8))+
+    #geom_pointrange(aes(x = reorder(ISO3, sortMag), y = MN, ymin = LL, ymax = UL, colour=ISO3, shape = sce),size=.5, linewidth = .2, position = position_dodge(width =.5))+
+    #scale_fill_manual(name="", values = c("KEN"="darkred","MDG"="yellow","MOZ"="dodgerblue4","TZA"="grey50", "ALL"="cyan"))+
+    #scale_shape_manual(values = c("SSP2-4.5" = 1, "SSP3-7.0"=0,"SSP5-8.5" = 2))+
+    scale_fill_manual(name="", values = c("SSP2-4.5" = "#749B58FF", "SSP3-7.0"="#466983FF","SSP5-8.5" = "#CE3D32FF"))+
     labs(y = "", x="", title = "")+guides(colour = "none")+
     scale_y_continuous(name = "Climate risk [index]", expand = c(0,0), limits = c(0,1), breaks = seq(0,1,.2))+
     theme_classic(base_size = 12)+
     theme(legend.position = c(0.15,.8),
           legend.title = element_blank(),
           legend.text = element_text(size = 5),
+          legend.background = element_blank(),
           #panel.background = element_rect(fill = "transparent", colour = NA),
           #plot.background = element_rect(fill = "transparent"),
-          axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1),
+          axis.text.x = element_text(angle = 0),
           #axis.line.y = element_blank(),
           #axis.text.y = element_blank(),
           #axis.ticks.y = element_blank(),
           panel.border = element_blank(),
           axis.line = element_line(linewidth = .1),
           axis.ticks = element_line(linewidth = .1)))
-ggsave(plot = plt3, "3_Outputs/plots/FigS3.png", dpi = 1200, height = 4, width = 4)
+ggsave(plot = plt3, "3_Outputs/plots/FigS3b.png", dpi = 1200, height = 4, width = 4)
 ###################################################################################################################
 #                     ECONOMIC VALUATION APPROACHES
 ##################################################################################################################
@@ -356,53 +359,47 @@ dfs <- riskMaster[,c("ISO3","Villages","Sensitivity","AdaptiveCapacity","imp.ssp
                      "risk245","risk370","risk585","TEV","ld_ssp245","ld_ssp370","ld_ssp585")]
 write_excel_csv(dfs, "3_Outputs/sheets/TableS3.csv")
 
-library(ggthemes)
-library(ggrepel)
-(xx <- rbind(
-  data.frame(value=dfs$ld_ssp245, sce = "SSP2-4.5", villages=dfs$Villages, ISO3 = dfs$ISO3),
-  data.frame(value=dfs$ld_ssp370, sce = "SSP3-7.0", villages=dfs$Villages, ISO3 = dfs$ISO3),
-  data.frame(value=dfs$ld_ssp585, sce = "SSP5-8.5", villages=dfs$Villages, ISO3 = dfs$ISO3)
-  ))
-
-ggplot(data = xx, aes(x = sce, y=value/1e6,label=villages))+
-  geom_boxplot(linewidth =0.1)+
-  #geom_point(aes(colour = ISO3), sizw= .3,position=position_jitter(width=.1, height=0))+
-  #scale_colour_manual(name="", values = c("KEN"="darkred","MDG"="yellow","MOZ"="dodgerblue4","TZA"="grey"))+
-  #geom_text_repel(size = 1)+
-  scale_y_continuous("Potential loss & damages (Million US$/year)")+
-  scale_x_discrete("")+
-  theme_classic(base_size = 12)+
-  guides(shape="none", colour = "none")+
-  theme(legend.position = "none",
-        legend.title = element_blank(),
-        legend.background = element_rect(fill = NA),
-        legend.key.size = unit(1, 'cm'),
-        axis.text.x = element_text(hjust = 1,angle = 45),
-        panel.grid.minor = element_blank(),
-        axis.line = element_line(linewidth = .1),
-        axis.ticks = element_line(linewidth = .1)
-  )
-ggsave("3_Outputs/plots/FigS4.png", dpi = 1200, width = 3, height = 6)
-
-
-# (rr1 <- ggplot()+
-#     geom_boxplot(data = dfs, aes(x="SSP2-4.5", y=ld_ssp245/1e6, fill = "SSP2-4.5"), linewidth =0.5)+
-#     geom_boxplot(data = dfs, aes(x="SSP5-8.5", y=ld_ssp585/1e6, fill = "SSP5-8.5"), linewidth =0.5)+
-#     labs(y = "", x = "")+
-#     scale_fill_manual(values = c("SSP2-4.5" = "darkgreen", "SSP5-8.5" = "darkred"))+
-#     theme_bw(base_size = 10)+coord_flip()+
-#     guides(colour = "none")+
-#     theme(legend.position = "none",
+# library(ggthemes)
+# library(ggrepel)
+# (xx <- rbind(
+#   data.frame(value=dfs$ld_ssp245, sce = "SSP2-4.5", villages=dfs$Villages, ISO3 = dfs$ISO3),
+#   data.frame(value=dfs$ld_ssp370, sce = "SSP3-7.0", villages=dfs$Villages, ISO3 = dfs$ISO3),
+#   data.frame(value=dfs$ld_ssp585, sce = "SSP5-8.5", villages=dfs$Villages, ISO3 = dfs$ISO3)
+#   ))
+# 
+# ggplot(data = xx, aes(x = sce, y=value/1e6,label=villages))+
+#   geom_boxplot(linewidth =0.1)+
+#   #geom_point(aes(colour = ISO3), sizw= .3,position=position_jitter(width=.1, height=0))+
+#   #scale_colour_manual(name="", values = c("KEN"="darkred","MDG"="yellow","MOZ"="dodgerblue4","TZA"="grey"))+
+#   #geom_text_repel(size = 1)+
+#   scale_y_continuous("Potential loss & damages (Million US$/year)")+
+#   scale_x_discrete("")+
+#   theme_classic(base_size = 12)+
+#   guides(shape="none", colour = "none")+
+#   theme(legend.position = "none",
 #         legend.title = element_blank(),
 #         legend.background = element_rect(fill = NA),
 #         legend.key.size = unit(1, 'cm'),
-#         #axis.text.x = element_blank(),
+#         axis.text.x = element_text(hjust = 1,angle = 45),
 #         panel.grid.minor = element_blank(),
-#         panel.grid.major.x = element_blank(),
-#         legend.text = element_text(size = 8),
-#         legend.key.height = unit(.1, 'cm'),
-#         legend.key.width = unit(.2, 'cm'), 
-#         panel.border = element_blank(),plot.margin = unit(c(0,0,0,-5.5), "mm")))
+#         axis.line = element_line(linewidth = .1),
+#         axis.ticks = element_line(linewidth = .1)
+#   )
+
+(rr1 <- ggplot()+
+    geom_boxplot(data = dfs, aes(x="SSP2-4.5", y=ld_ssp245/1e6, colour = "SSP2-4.5"), linewidth =0.2)+
+    geom_boxplot(data = dfs, aes(x="SSP3-7.0", y=ld_ssp370/1e6, colour = "SSP3-7.0"), linewidth =0.2)+
+    geom_boxplot(data = dfs, aes(x="SSP5-8.5", y=ld_ssp585/1e6, colour = "SSP5-8.5"), linewidth =0.2)+
+    labs(y = "Potential loss & damages (Million US$/year)", x = "")+
+    #scale_fill_manual(values = c("SSP2-4.5" = "darkgreen", "SSP3-7.0" = "grey", "SSP5-8.5" = "darkred"))+
+    theme_classic(base_size = 10)+    guides(colour = "none")+
+    theme(legend.position = "none",
+          axis.line = element_line(linewidth = .1),
+          axis.ticks = element_line(linewidth = .1),
+          panel.grid.minor = element_blank(),
+          panel.grid.major.x = element_blank()))
+ggsave("3_Outputs/plots/FigS4.png", dpi = 1200, width = 3, height = 6)
+
 
 yq2<- summary(dfs$risk585)[2]
 xq2<- summary(dfs$TEV/1e6)[3]
