@@ -1,5 +1,7 @@
 #WIO VELCOTIY FOR MAINA JM
 rm(list = ls())
+library(rasterVis)
+library(ggplot2)
 
 mainDir <- "E:/10_JMM_CCVA/ClimateriskWIO"
 setwd(mainDir)
@@ -16,6 +18,7 @@ wio_shp <- st_read("E:/10_JMM_CCVA/ClimateriskWIO/2_Data/shp/country_shape.shp")
 
 sst <- c("sst126_ESM25km.nc", "sst245_ESM25km.nc", "sst370_ESM25km.nc", "sst585_ESM25km.nc")
 ncfiles <- c(sst)
+
 # loop over the file names, convert netCDFs to raster stack and crop to WIO extent
 r <- lapply(1:length(ncfiles), function(x){
   r_rast <-  raster::crop(
@@ -82,3 +85,14 @@ if (require(ncdf4)) {	rnc <- writeRaster(gvWIO, filename=file.path("2_Data/raste
 #Visualize
 my.at <- seq(0, 100, by = 1)
 rasterVis::levelplot(gvWIO[[8]], par.settings = BuRdTheme, at=my.at, main = 'Gradient-based vocc', margin = FALSE)
+
+#git local access_jm
+gvWIO<-raster::stack("~/Documents/Mygitprojects/ClimateriskWIO/2_Data/raster/velocity/wio_climate_velocity.nc")
+
+names(gvWIO) <- c("vel_ssp126_2050","vel_ssp126_2100","vel_ssp245_2050","vel_ssp245_2100","vel_ssp370_2050","vel_ssp370_2100","vel_ssp585_2050","vel_ssp585_2100")
+
+
+gplot(gvWIO) + 
+  geom_tile(aes(fill = value)) +
+  facet_wrap(variable~.,scales = "free_y")+
+  coord_equal()
