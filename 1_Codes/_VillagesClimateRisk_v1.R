@@ -18,14 +18,17 @@ wio.AOO.spdf <- st_as_sf(wio.AOO, coords=c('x', 'y'), crs="+proj=longlat")
 
 #Note that each NC file contains eight layers which is generally structured as SSP126_2050, SSP126_2100, SSP245_2050, SSP245_2100, SSP370_2050, SSP370_2100, SSP585_2050, SSP585_2100
 nc <- (as.data.frame(expand.grid(x=c(126,245,370,585), y=c(2050,2100))) %>% arrange(desc(-x)) %>% mutate(cbn = paste(x,y,sep = "_")) %>% dplyr::select(cbn))[,1]
-varlst <- c("cdd","evspsbl","npp","pH_trend","r95p","tap_trend","sst_trend","sst90p","ts_trend","ts90p")
-#varlst <- c("cdd","r95p","sst90p","ts90p")
+#varlst <- c("cdd","evspsbl","npp","pH_trend","r95p","tap_trend","sst_trend","sst90p","ts_trend","ts90p")
+chonic <- c("evspsbl","npp","pH_trend","tap_trend","sst_trend","ts_trend")
+acute <- c("cdd","r95p","sst90p","ts90p")
+(varlst <- c(chonic,acute))
+
 allRaster <- lapply(1:length(varlst), function(x){
   rr <- raster::brick(clim.nc[grep(varlst[[x]], clim.nc)])
   names(rr) <- paste(varlst[[x]], nc, sep = "_")
   return(rr)}
 )
-hazards <- stack(allRaster)
+hazards <- stack(allRaster);plot(hazards)
 
 #Extract the raw hazards to the WIO's AOO of interest
 climdata <- raster::extract(hazards, wio.AOO.spdf, sp=TRUE, df=TRUE) %>% as.data.frame()
@@ -56,7 +59,7 @@ QTtransform <- function(df,vlst,scenario,time){
   dfNmd <- xx %>% as.data.frame() %>% mutate(pH_trend = -1*pH_trend) %>% mutate(across(cdd:ts90p, ~ inormal(.x)))
   #Convert to wide format
   dfWide <- lapply(1:length(vlst), function(x){
-    xv <- reshape2::dcast(dfNmd, ID ~ Scenario+Period, value.var= vlst[[x]])
+    xv <- reshape2::dcast(dfNmd,ID ~Scenario+Period, value.var= vlst[[x]])
     scePeriod <- rep(scenario, each = length(time))
     names(xv) <-c("ID", paste(rep(vlst[[x]], each = length(scePeriod)), scePeriod, time, sep = "_"))
     return(xv)})
@@ -179,7 +182,7 @@ ggplot(data = socioecom, aes(x="XS", y=Vulnerable,label=VillNation))+
         axis.line.y = element_line(linewidth = .1),
         axis.ticks.y = element_line(linewidth = .1)
         )
-ggsave("3_Outputs/plots/FigS2.png", width = 4, height = 5, dpi = 1200)
+#ggsave("3_Outputs/plots/FigS2.png", width = 4, height = 5, dpi = 1200)
 
 ##################################################################################################################
 #                                  PLOT RISK SPACES
@@ -208,6 +211,7 @@ lgd$brks <- factor(lgd$brks, levels = c("Low","Medium","High","Very high"))
     labs(y = "Climate change impacts [Index]", x = "", title = "a. RISK SPACE")+
     scale_y_continuous(expand = c(0,0), breaks = seq(0.3,1,.1))+
     scale_x_continuous(expand = c(0,0), breaks = seq(0,1,.1))+ 
+    #scale_x_reverse()+
     theme_bw(base_size = 8)+
     scale_shape_manual(values = c("SSP2-4.5" = 1, "SSP5-8.5" = 2))+
     guides(shape="none", colour = "none")+

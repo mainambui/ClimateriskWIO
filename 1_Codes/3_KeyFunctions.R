@@ -68,7 +68,7 @@ txpFUN <- function(r, nYrs, baseline, p, pn=c("near","far")){
   if(period=="far"){
     end <- nlayers(r)
   } else{
-    end <- 540
+    end <- 432
   }
   start = end-(clim.years.thresh*12 - 1)
   rr <- stack(thresh, r[[start:end]])
@@ -99,7 +99,7 @@ txIntFUN <- function(r, nYrs, baseline, p, pn=c("near","far")){
   if(period=="far"){
     end <- nlayers(r)
   } else{
-    end <- 540
+    end <- 432
   }
   start = end-(clim.years.thresh*12 - 1)
   rr <- stack(thresh, r[[start:end]])
