@@ -86,9 +86,13 @@ if (require(ncdf4)) {	rnc <- writeRaster(gvWIO, filename=file.path("2_Data/raste
 my.at <- seq(0, 100, by = 1)
 rasterVis::levelplot(gvWIO[[8]], par.settings = BuRdTheme, at=my.at, main = 'Gradient-based vocc', margin = FALSE)
 
+gvWIO<-raster::stack("2_Data/raster/velocity/wio_climate_velocity.nc")
+names(gvWIO) <- c("vel_ssp126_2050","vel_ssp126_2100","vel_ssp245_2050","vel_ssp245_2100","vel_ssp370_2050","vel_ssp370_2100","vel_ssp585_2050","vel_ssp585_2100")
+plot(gvWIO[[1]])
+
+
 #git local access_jm
 gvWIO<-raster::stack("~/Documents/Mygitprojects/ClimateriskWIO/2_Data/raster/velocity/wio_climate_velocity.nc")
-
 names(gvWIO) <- c("vel_ssp126_2050","vel_ssp126_2100","vel_ssp245_2050","vel_ssp245_2100","vel_ssp370_2050","vel_ssp370_2100","vel_ssp585_2050","vel_ssp585_2100")
 
 
