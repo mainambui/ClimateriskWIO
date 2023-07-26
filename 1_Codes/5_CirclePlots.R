@@ -4,7 +4,9 @@ library(ncdf4);library(sp);library(tidyverse);library(sf)
 library(raster) #some functions conflict with dplyr
 
 rm(list = ls())
-db.dir = "C:/Users/MQ45019738/Dropbox/6_WIO_CCVA/WIOProjects/Data/"
+# = "C:/Users/MQ45019738/Dropbox/6_WIO_CCVA/WIOProjects/Data/"
+db.dir = "~/Documents/Mygitprojects/ClimateriskWIO/2_Data/sheet/" #jm local git dor
+
 
 #Import SE data
 socioecom <- read_csv(paste0(db.dir, "3-Vulnerability//SocialDataAll.csv"))
