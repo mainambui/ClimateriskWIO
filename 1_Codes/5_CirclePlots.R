@@ -10,7 +10,7 @@ db.dir = "~/Documents/Mygitprojects/ClimateriskWIO/2_Data/sheet/" #jm local git 
 
 #Import SE data
 #socioecom <- read_csv(paste0(db.dir, "3-Vulnerability//SocialDataAll.csv"))
-socioecom <- read_csv(paste0(db.dir, "3_SocialVulnerability/SocialDataAll.csv"))
+socioecom <- read_csv(paste0(db.dir, "3_SocialVulnerability/SocialDataAll.csv"))#jm local got folder
 socioecom <- filter(socioecom, !is.na(x))
 
 ##############################
