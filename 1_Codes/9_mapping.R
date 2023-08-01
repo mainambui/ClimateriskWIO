@@ -52,11 +52,8 @@ ts.breaks <- c(10, 13, 16, 19, 22, 25, 28, 31, 34)
 pr.breaks <- c(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
 
 
-splashdown_cols <- c("#A56723", "#FF9933", "#FFC847", "#FFF67A", "#EDFBCD", "#B8E6D9", "#84D1D4", "#5398C4", 
-                              "#13378E")
-                              
-splashdown_cols <- c("#FF9933", "#ffc02e", "#FFC847", "#FFF67A", "#EDFBCD", "#B8E6D9", "#84D1D4", "#5398C4", 
-                              "#13378E")
+splashdown_cols <- c("#A56723", "#FF9933", "#FFC847", "#FFF67A", "#EDFBCD", "#B8E6D9", "#84D1D4", "#5398C4", "#13378E")
+#splashdown_cols <- c("#FF9933", "#ffc02e", "#FFC847", "#FFF67A", "#EDFBCD", "#B8E6D9", "#84D1D4", "#5398C4", "#13378E")
 
 # convert data from wide to long format
 tx_long <- gather(tx_df, key = "variable", value = "value", -Lon, -Lat)
