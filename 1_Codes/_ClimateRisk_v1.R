@@ -5,7 +5,7 @@ library("tidyverse");library("raster");library("SearchTrees");library("sf");libr
 
 #import some important functions
 inormal <- function(x) {
-  qrank <- ((rank(x, na.last = TRUE, ties.method= "random") - 0.5) / sum(!is.na(x)))
+  qrank <- ((rank(x, na.last = TRUE) - 0.5) / sum(!is.na(x)))
   z_score <- scales::rescale(sqrt(2)*pracma::erfinv(2*qrank-1))
   return(z_score)  }
 
@@ -18,17 +18,17 @@ wio.AOO.spdf <- st_as_sf(wio.AOO, coords=c('x', 'y'), crs="+proj=longlat")
 
 #Note that each NC file contains eight layers which is generally structured as SSP126_2050, SSP126_2100, SSP245_2050, SSP245_2100, SSP370_2050, SSP370_2100, SSP585_2050, SSP585_2100
 nc <- (as.data.frame(expand.grid(x=c(126,245,370,585), y=c(2050,2100))) %>% arrange(desc(-x)) %>% mutate(cbn = paste(x,y,sep = "_")) %>% dplyr::select(cbn))[,1]
-#varlst <- c("cdd","evspsbl","npp","pH_trend","r95p","tap_trend","sst_trend","sst90p","ts_trend","ts90p")
 chonic <- c("evspsbl","npp","pH_trend","tap_trend","sst_trend","ts_trend")
-acute <- c("cdd","r95p","sst90p","ts90p")
+acute <- c("cdd","r10p","sst90p","ts90p")
 (varlst <- c(chonic,acute))
 
-allRaster <- lapply(1:length(varlst), function(x){
+hazards <- lapply(1:length(varlst), function(x){
   rr <- raster::brick(clim.nc[grep(varlst[[x]], clim.nc)])
   names(rr) <- paste(varlst[[x]], nc, sep = "_")
   return(rr)}
-)
-hazards <- stack(allRaster);plot(hazards)
+) %>% raster::stack(.)
+
+plot(hazards)
 
 #Extract the raw hazards to the WIO's AOO of interest
 climdata <- raster::extract(hazards, wio.AOO.spdf, sp=TRUE, df=TRUE) %>% as.data.frame()
@@ -53,23 +53,25 @@ QTtransform <- function(df,vlst,scenario,time){
   
   #Quantile transform
   inormal <- function(x){
-    qrank <- ((rank(x, na.last = TRUE, ties.method= "random") - 0.5) / sum(!is.na(x)))
+    qrank <- ((rank(x, na.last = TRUE) - 0.5) / sum(!is.na(x)))
     z_score <- scales::rescale(sqrt(2)*pracma::erfinv(2*qrank-1))
     return(z_score)}
-  dfNmd <- xx %>% as.data.frame() %>% mutate(pH_trend = -1*pH_trend) %>% mutate(across(cdd:ts90p, ~ inormal(.x)))
+  N <- ncol(xx)
+  dfNmd <- xx %>% as.data.frame() %>% 
+    mutate(pH_trend = -1*pH_trend, r10p = -1*r10p) %>% mutate(across(4:N, ~ inormal(.x)))
+  
   #Convert to wide format
   dfWide <- lapply(1:length(vlst), function(x){
     xv <- reshape2::dcast(dfNmd,ID ~Scenario+Period, value.var= vlst[[x]])
     scePeriod <- rep(scenario, each = length(time))
-    names(xv) <-c("ID", paste(rep(vlst[[x]], each = length(scePeriod)), scePeriod, time, sep = "_"))
+    names(xv) <- c("ID", paste(rep(vlst[[x]], each = length(scePeriod)), scePeriod, time, sep = "_"))
     return(xv)})
   
   stdHzd <- dfWide %>% reduce(left_join, by = "ID")
   return(stdHzd)
 }
-
 #Inverse Normal Standardised Variables
-(HazardQNormed <- QTtransform(climdata, vlst = varlst, time = 2050, scenario = c(245,370,585)))
+(HazardQNormed <- QTtransform(climdata, vlst = varlst, time = c(2050,2100), scenario = c(245,370,585)))
 
 #Normalised Exposed Systems Metrics
 ExposureNormed <- climdata %>% 
@@ -91,28 +93,41 @@ namelist <- colnames(HazardExposures)
     rowwise() %>%
     mutate(
       #mean across 13 normalised climate metrics
-      hzd.mn.ssp245.2050 = mean(c_across(namelist[grep("_245", namelist)]), na.rm=TRUE),
-      hzd.mn.ssp370.2050 = mean(c_across(namelist[grep("_370", namelist)]), na.rm=TRUE),
-      hzd.mn.ssp585.2050 = mean(c_across(namelist[grep("_585", namelist)]), na.rm=TRUE),
+      hzd.mn.ssp245.2050 = mean(c_across(namelist[grep("_245_2050", namelist)]), na.rm=TRUE),
+      hzd.mn.ssp370.2050 = mean(c_across(namelist[grep("_370_2050", namelist)]), na.rm=TRUE),
+      hzd.mn.ssp585.2050 = mean(c_across(namelist[grep("_585_2050", namelist)]), na.rm=TRUE),
+      hzd.mn.ssp245.2100 = mean(c_across(namelist[grep("_245_2100", namelist)]), na.rm=TRUE),
+      hzd.mn.ssp370.2100 = mean(c_across(namelist[grep("_370_2100", namelist)]), na.rm=TRUE),
+      hzd.mn.ssp585.2100 = mean(c_across(namelist[grep("_585_2100", namelist)]), na.rm=TRUE),
       exp.mn.wioo = mean(c_across(std_Nb_sp:std_FEve), na.rm=TRUE),
       
       #standard deviations across 13 normalised climate metrics
-      hzd.sd.ssp245.2050 = sd(c_across(namelist[grep("_245", namelist)]), na.rm=TRUE),
-      hzd.sd.ssp370.2050 = sd(c_across(namelist[grep("_370", namelist)]), na.rm=TRUE),
-      hzd.sd.ssp585.2050 = sd(c_across(namelist[grep("_585", namelist)]), na.rm=TRUE),
+      hzd.sd.ssp245.2050 = sd(c_across(namelist[grep("_245_2050", namelist)]), na.rm=TRUE),
+      hzd.sd.ssp370.2050 = sd(c_across(namelist[grep("_370_2050", namelist)]), na.rm=TRUE),
+      hzd.sd.ssp585.2050 = sd(c_across(namelist[grep("_585_2050", namelist)]), na.rm=TRUE),
+      hzd.sd.ssp245.2100 = sd(c_across(namelist[grep("_245_2100", namelist)]), na.rm=TRUE),
+      hzd.sd.ssp370.2100 = sd(c_across(namelist[grep("_370_2100", namelist)]), na.rm=TRUE),
+      hzd.sd.ssp585.2100 = sd(c_across(namelist[grep("_585_2100", namelist)]), na.rm=TRUE),
       exp.sd.wioo = sd(c_across(std_Nb_sp:std_FEve), na.rm=TRUE)) %>% ungroup() %>%
     
     mutate(
       #Deduce inverse variance weights
-      wgts.Exp = (exp.sd.wioo/exp.mn.wioo)^-1,
-      wgts.ssp245 = (hzd.sd.ssp245.2050/hzd.mn.ssp245.2050)^-1,
-      wgts.ssp370 = (hzd.sd.ssp370.2050/hzd.mn.ssp370.2050)^-1,
-      wgts.ssp585 = (hzd.sd.ssp585.2050/hzd.mn.ssp585.2050)^-1,
-      
+      wgts.Exp = (exp.sd.wioo/exp.mn.wioo)^(-1),
+      wgts.ssp245.2050 = (hzd.sd.ssp245.2050/hzd.mn.ssp245.2050)^(-1),
+      wgts.ssp370.2050 = (hzd.sd.ssp370.2050/hzd.mn.ssp370.2050)^(-1),
+      wgts.ssp585.2050 = (hzd.sd.ssp585.2050/hzd.mn.ssp585.2050)^(-1),
+      wgts.ssp245.2100 = (hzd.sd.ssp245.2100/hzd.mn.ssp245.2100)^(-1),
+      wgts.ssp370.2100 = (hzd.sd.ssp370.2100/hzd.mn.ssp370.2100)^(-1),
+      wgts.ssp585.2100 = (hzd.sd.ssp585.2100/hzd.mn.ssp585.2100)^(-1),
       #Estimate potential impacts
-      imp.ssp245.2050 = ((hzd.mn.ssp245.2050*wgts.ssp245)*(exp.mn.wioo*wgts.Exp))/(wgts.ssp245+wgts.Exp),
-      imp.ssp370.2050 = ((hzd.mn.ssp370.2050*wgts.ssp370)*(exp.mn.wioo*wgts.Exp))/(wgts.ssp370+wgts.Exp),
-      imp.ssp585.2050 = ((hzd.mn.ssp585.2050*wgts.ssp585)*(exp.mn.wioo*wgts.Exp))/(wgts.ssp585+wgts.Exp)
+      #2050
+      imp.ssp245.2050 = ((hzd.mn.ssp245.2050*wgts.ssp245.2050)*(exp.mn.wioo*wgts.Exp))/(wgts.ssp245.2050+wgts.Exp),
+      imp.ssp370.2050 = ((hzd.mn.ssp370.2050*wgts.ssp370.2050)*(exp.mn.wioo*wgts.Exp))/(wgts.ssp370.2050+wgts.Exp),
+      imp.ssp585.2050 = ((hzd.mn.ssp585.2050*wgts.ssp585.2050)*(exp.mn.wioo*wgts.Exp))/(wgts.ssp585.2050+wgts.Exp),
+      #2100
+      imp.ssp245.2100 = ((hzd.mn.ssp245.2100*wgts.ssp245.2100)*(exp.mn.wioo*wgts.Exp))/(wgts.ssp245.2100+wgts.Exp),
+      imp.ssp370.2100 = ((hzd.mn.ssp370.2100*wgts.ssp370.2100)*(exp.mn.wioo*wgts.Exp))/(wgts.ssp370.2100+wgts.Exp),
+      imp.ssp585.2100 = ((hzd.mn.ssp585.2100*wgts.ssp585.2100)*(exp.mn.wioo*wgts.Exp))/(wgts.ssp585.2100+wgts.Exp)
     ))
 hist(ClimImpacts$imp.ssp585.2050, breaks=30)
 write_csv(ClimImpacts, "2_Data/sheet/2_ImpactsGRIDs.csv")
@@ -134,10 +149,10 @@ EucDist <- merge(EucDist, ImpactsGRIDs, by = "nbr")
 #Visual checking of distribution
 hist(EucDist$inverseDist, breaks = 30)
 (idw.impacts <- EucDist %>% group_by(src) %>%
-    summarise(across(CoralExt:imp.ssp585.2050, ~(sum(.x*inverseDist, na.rm = TRUE)/sum(inverseDist, na.rm = TRUE))))%>% mutate(ID = src) %>% dplyr::select(-src)
+    summarise(across(CoralExt:imp.ssp585.2100, ~(sum(.x*inverseDist, na.rm = TRUE)/sum(inverseDist, na.rm = TRUE))))%>% mutate(ID = src) %>% dplyr::select(-src)
 )
 (wio.com.idw.impacts <- merge(villageGridID, idw.impacts, by = "ID"))
-plot(wio.com.idw.impacts$Cropland, wio.com.idw.impacts$sst90Int_ssp585)
+plot(wio.com.idw.impacts$Cropland, wio.com.idw.impacts$sst90p_370_2050)
 write_csv(wio.com.idw.impacts, "2_Data/sheet/3_VillageImpacts.csv")
 
 ######################################################################################################################################################
@@ -194,8 +209,8 @@ riskMaster <- merge(socioecom, villageImpacts, by ="Villages")
 df <- rbind(data.frame(sce = "SSP2-4.5", impact = riskMaster$imp.ssp245.2050, Vulnerability = riskMaster$Vulnerable, village = riskMaster$Villages, ISO3 = riskMaster$ISO3),
             data.frame(sce = "SSP5-8.5", impact = riskMaster$imp.ssp585.2050, Vulnerability = riskMaster$Vulnerable, village = riskMaster$Villages, ISO3 = riskMaster$ISO3))
 yR <- range(df$impact);xR <- range(df$Vulnerability)
-lgd <- expand.grid(x = seq(0,1,diff(xR)/1000),
-                   y = seq(0,1,diff(yR)/1000)) %>%
+lgd <- expand.grid(x = seq(0,1,diff(xR)/100),
+                   y = seq(0,1,diff(yR)/100)) %>%
   mutate(mxCol = sqrt(x^2*y^2),
          brks = ntile(mxCol,4),
          brks = ifelse(brks==1,"Low",ifelse(brks==2,"Medium",ifelse(brks==3,"High","Very high")))
@@ -248,15 +263,16 @@ grobs <- ggplotGrob(optSpace)$grobs
 legend <- grobs[[which(sapply(grobs, function(x) x$name) == "guide-box")]]
 
 (rrSpace <- ((riskspace|optSpace+theme(legend.position = "none"))/legend)+plot_layout(heights = c(2, .1)))
-ggsave(plot=rrSpace, "3_Outputs/plots/Transition/Fig2a.png", dpi=1200, height=3, width=4)
+#ggsave(plot=rrSpace, "3_Outputs/plots/Transition/Fig2a.png", dpi=1200, height=3, width=4)
 
 ##############################################################################################################################
 #                                 Estimate potential residual risk and plot difference among villages
 #############################################################################################################################
 
-riskMaster <- riskMaster %>% mutate(risk585 = sqrt(imp.ssp585.2050^2*Vulnerable^2),
-                                    risk370 = sqrt(imp.ssp370.2050^2*Vulnerable^2),
-                                    risk245 = sqrt(imp.ssp245.2050^2*Vulnerable^2))
+riskMaster <- riskMaster %>% 
+  mutate(risk585 = sqrt(imp.ssp585.2050^2*Vulnerable^2),
+         risk370 = sqrt(imp.ssp370.2050^2*Vulnerable^2),
+         risk245 = sqrt(imp.ssp245.2050^2*Vulnerable^2))
 
 summary(riskMaster$risk585, na.rm=TRUE);sd(riskMaster$risk585, na.rm=TRUE)
 summary(riskMaster$risk245, na.rm=TRUE);sd(riskMaster$risk245, na.rm=TRUE)
@@ -288,7 +304,7 @@ df$brks <- ifelse(df$risk < xx[[1]][1], "Low", ifelse(df$risk <  xx[[1]][2], "Me
           axis.text.x = element_text(size = 5, angle = 45, vjust = 1, hjust = 1),
           axis.line = element_line(linewidth = .1), 
           axis.ticks = element_line(linewidth = .1)))
-ggsave(plot = plt2, "3_Outputs/plots/Fig2b.png", dpi = 1200, height = 3, width = 4)
+#ggsave(plot = plt2, "3_Outputs/plots/Fig2b.png", dpi = 1200, height = 3, width = 4)
 
 #Plots bars for each country
 # df1 <- riskMaster %>% group_by(ISO3) %>%
@@ -352,6 +368,9 @@ plot(riskMaster$TEV/1e6, (1-riskMaster$risk585))
 riskMaster$ld_ssp585 = riskMaster$TEV*(1-riskMaster$risk585)
 riskMaster$ld_ssp370 = riskMaster$TEV*(1-riskMaster$risk370)
 riskMaster$ld_ssp245 = riskMaster$TEV*(1-riskMaster$risk245)
+#Order of magnitude change
+sum(riskMaster$ld_ssp370, na.rm = TRUE)/sum(riskMaster$ld_ssp585, na.rm = TRUE)
+sum(riskMaster$ld_ssp245, na.rm = TRUE)/sum(riskMaster$ld_ssp585, na.rm = TRUE)
 
 dfs <- riskMaster[,c("ISO3","Villages","Sensitivity","AdaptiveCapacity","imp.ssp245.2050","imp.ssp370.2050","imp.ssp585.2050",
                      "risk245","risk370","risk585","TEV","ld_ssp245","ld_ssp370","ld_ssp585")]
