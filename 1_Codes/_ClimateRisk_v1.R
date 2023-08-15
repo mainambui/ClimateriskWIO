@@ -10,8 +10,8 @@ inormal <- function(x) {
   return(z_score)  }
 
 #Import PU and convert to a spatial object
-wio.AOO <- readRDS("2_Data/sheet/2_Ecosystems/wioAOO.rds")
-wio.AOO.spdf <- st_as_sf(wio.AOO, coords=c('x', 'y'), crs="+proj=longlat")
+wio.aoo <- readRDS("2_Data/sheet/wio.aoo.rds")
+wio.aoo.spdf <- st_as_sf(wio.aoo, coords=c('x', 'y'), crs="+proj=longlat")
 
 #LOAD METRICS
 (clim.nc <- list.files("./2_Data/raster",pattern='*.nc',full.names=TRUE))
@@ -31,12 +31,12 @@ hazards <- lapply(1:length(varlst), function(x){
 plot(hazards)
 
 #Extract the raw hazards to the WIO's AOO of interest
-climdata <- raster::extract(hazards, wio.AOO.spdf, sp=TRUE, df=TRUE) %>% as.data.frame()
+climdata <- raster::extract(hazards, wio.aoo.spdf, sp=TRUE, df=TRUE) %>% as.data.frame()
 colnames(climdata)[colnames(climdata) == "coords.x1"] <- "x"
 colnames(climdata)[colnames(climdata) == "coords.x2"] <- "y"
 climdata <- climdata %>% relocate(x:y, .before = ID)
 N <- ncol(climdata)
-#climdata <- cbind(climdata[1:14], DMwR2::knnImputation(climdata[15:N], k = 3))
+# climdata <- cbind(climdata[1:14], DMwR2::knnImputation(climdata[15:N], k = 3))
 
 #Put in a function to tiddy up the Global Environment
 QTtransform <- function(df,vlst,scenario,time){
@@ -44,7 +44,8 @@ QTtransform <- function(df,vlst,scenario,time){
   #scenario <- match.arg(sce)
   xx = c()
   for(k in seq_along(time)){
-    xx[[k]] <- lapply(1:length(scenario), function(x){d1 <- cbind("ID" = df[,"ID"], sce = paste("ssp",scenario[[x]],sep=""), df[,nlist[grep(paste(scenario[[x]],time[[k]],sep="_"),nlist)]])
+    xx[[k]] <- lapply(1:length(scenario), function(x){
+      d1 <- cbind("ID" = df[,"ID"], sce = paste("ssp",scenario[[x]],sep=""), df[,nlist[grep(paste(scenario[[x]],time[[k]],sep="_"),nlist)]])
     colnames(d1) <- c("ID","Scenario",paste(vlst))
     return(d1)}) %>% bind_rows()
   }
@@ -58,7 +59,7 @@ QTtransform <- function(df,vlst,scenario,time){
     return(z_score)}
   N <- ncol(xx)
   dfNmd <- xx %>% as.data.frame() %>% 
-    mutate(pH_trend = -1*pH_trend, r10p = -1*r10p) %>% mutate(across(4:N, ~ inormal(.x)))
+    mutate(pH_trend = -1*pH_trend) %>% mutate(across(all_of(4:N), ~ inormal(.x)))
   
   #Convert to wide format
   dfWide <- lapply(1:length(vlst), function(x){
@@ -71,7 +72,7 @@ QTtransform <- function(df,vlst,scenario,time){
   return(stdHzd)
 }
 #Inverse Normal Standardised Variables
-(HazardQNormed <- QTtransform(climdata, vlst = varlst, time = c(2050,2100), scenario = c(245,370,585)))
+(HazardQNormed <- QTtransform(climdata, vlst = varlst, time = c(2050), scenario = c(245,370,585)))
 
 #Normalised Exposed Systems Metrics
 ExposureNormed <- climdata %>% 
@@ -88,7 +89,12 @@ ExposureNormed <- climdata %>%
   mutate(across(std_corals:std_Nb_sp, ~ inormal(.x)))#FRic, FDiv, and FEve are already normalised variables
 
 HazardExposures <- merge(ExposureNormed, HazardQNormed, by = "ID")
+
+#Import Sea level rise (SLR) and tropical cyclone data. Note that at this stage, the GMSL data has been process and normalised using approache 
+slr.tc.data <- read_csv("2_Data/sheet/wio.sealevel.tcyclone.aoo.csv")
+HazardExposures <- merge(HazardExposures, slr.tc.data, by = "ID")
 namelist <- colnames(HazardExposures)
+
 (ClimImpacts <- HazardExposures %>% 
     rowwise() %>%
     mutate(
@@ -96,64 +102,48 @@ namelist <- colnames(HazardExposures)
       hzd.mn.ssp245.2050 = mean(c_across(namelist[grep("_245_2050", namelist)]), na.rm=TRUE),
       hzd.mn.ssp370.2050 = mean(c_across(namelist[grep("_370_2050", namelist)]), na.rm=TRUE),
       hzd.mn.ssp585.2050 = mean(c_across(namelist[grep("_585_2050", namelist)]), na.rm=TRUE),
-      hzd.mn.ssp245.2100 = mean(c_across(namelist[grep("_245_2100", namelist)]), na.rm=TRUE),
-      hzd.mn.ssp370.2100 = mean(c_across(namelist[grep("_370_2100", namelist)]), na.rm=TRUE),
-      hzd.mn.ssp585.2100 = mean(c_across(namelist[grep("_585_2100", namelist)]), na.rm=TRUE),
       exp.mn.wioo = mean(c_across(std_Nb_sp:std_FEve), na.rm=TRUE),
-      
       #standard deviations across 13 normalised climate metrics
       hzd.sd.ssp245.2050 = sd(c_across(namelist[grep("_245_2050", namelist)]), na.rm=TRUE),
       hzd.sd.ssp370.2050 = sd(c_across(namelist[grep("_370_2050", namelist)]), na.rm=TRUE),
       hzd.sd.ssp585.2050 = sd(c_across(namelist[grep("_585_2050", namelist)]), na.rm=TRUE),
-      hzd.sd.ssp245.2100 = sd(c_across(namelist[grep("_245_2100", namelist)]), na.rm=TRUE),
-      hzd.sd.ssp370.2100 = sd(c_across(namelist[grep("_370_2100", namelist)]), na.rm=TRUE),
-      hzd.sd.ssp585.2100 = sd(c_across(namelist[grep("_585_2100", namelist)]), na.rm=TRUE),
       exp.sd.wioo = sd(c_across(std_Nb_sp:std_FEve), na.rm=TRUE)) %>% ungroup() %>%
-    
     mutate(
       #Deduce inverse variance weights
-      wgts.Exp = (exp.sd.wioo/exp.mn.wioo)^(-1),
-      wgts.ssp245.2050 = (hzd.sd.ssp245.2050/hzd.mn.ssp245.2050)^(-1),
-      wgts.ssp370.2050 = (hzd.sd.ssp370.2050/hzd.mn.ssp370.2050)^(-1),
-      wgts.ssp585.2050 = (hzd.sd.ssp585.2050/hzd.mn.ssp585.2050)^(-1),
-      wgts.ssp245.2100 = (hzd.sd.ssp245.2100/hzd.mn.ssp245.2100)^(-1),
-      wgts.ssp370.2100 = (hzd.sd.ssp370.2100/hzd.mn.ssp370.2100)^(-1),
-      wgts.ssp585.2100 = (hzd.sd.ssp585.2100/hzd.mn.ssp585.2100)^(-1),
+      wgts.Exp = sqrt(exp.sd.wioo),
+      wgts.ssp245.2050 = sqrt(hzd.sd.ssp245.2050),
+      wgts.ssp370.2050 = sqrt(hzd.sd.ssp370.2050),
+      wgts.ssp585.2050 = sqrt(hzd.sd.ssp585.2050),
       #Estimate potential impacts
-      #2050
-      imp.ssp245.2050 = ((hzd.mn.ssp245.2050*wgts.ssp245.2050)*(exp.mn.wioo*wgts.Exp))/(wgts.ssp245.2050+wgts.Exp),
-      imp.ssp370.2050 = ((hzd.mn.ssp370.2050*wgts.ssp370.2050)*(exp.mn.wioo*wgts.Exp))/(wgts.ssp370.2050+wgts.Exp),
-      imp.ssp585.2050 = ((hzd.mn.ssp585.2050*wgts.ssp585.2050)*(exp.mn.wioo*wgts.Exp))/(wgts.ssp585.2050+wgts.Exp),
-      #2100
-      imp.ssp245.2100 = ((hzd.mn.ssp245.2100*wgts.ssp245.2100)*(exp.mn.wioo*wgts.Exp))/(wgts.ssp245.2100+wgts.Exp),
-      imp.ssp370.2100 = ((hzd.mn.ssp370.2100*wgts.ssp370.2100)*(exp.mn.wioo*wgts.Exp))/(wgts.ssp370.2100+wgts.Exp),
-      imp.ssp585.2100 = ((hzd.mn.ssp585.2100*wgts.ssp585.2100)*(exp.mn.wioo*wgts.Exp))/(wgts.ssp585.2100+wgts.Exp)
+      imp.ssp245.2050 = ((hzd.mn.ssp245.2050^wgts.ssp245.2050)*(exp.mn.wioo^wgts.Exp)),
+      imp.ssp370.2050 = ((hzd.mn.ssp370.2050^wgts.ssp370.2050)*(exp.mn.wioo^wgts.Exp)),
+      imp.ssp585.2050 = ((hzd.mn.ssp585.2050^wgts.ssp585.2050)*(exp.mn.wioo^wgts.Exp))
     ))
-hist(ClimImpacts$imp.ssp585.2050, breaks=30)
-write_csv(ClimImpacts, "2_Data/sheet/2_ImpactsGRIDs.csv")
+hist(ClimImpacts$imp.ssp245.2050, breaks=30)
+write_csv(ClimImpacts, "2_Data/sheet/climate.impacts.aoo.csv")
 
 #########################################################################################################################################
 #Merge grid level impacts to the network
 #########################################################################################################################################
 
-ImpactsGRIDs <- read_csv("2_Data/sheet/2_ImpactsGRIDs.csv")
-EucDist <- read_csv("2_Data/sheet/DistMatrix.csv")
-villageGridID <- read_csv("2_Data/sheet/VillageGridIDs.csv")
+impacts.aoo <- read_csv("2_Data/sheet/climate.impacts.aoo.csv")
+idw.matrix <- read_csv("2_Data/sheet/idw.dist.matrix.csv")
+village.aoo.id <- read_csv("2_Data/sheet/village.grid.id.csv")
 
-EucDist <- EucDist[c("src", "nbr", "EucDist")] %>% filter(EucDist>0) #filter to remove self intersections #
-EucDist$inverseDist <- (1/EucDist$EucDist)
+idw.matrix <- idw.matrix[c("src", "nbr", "EucDist")] %>% filter(EucDist>0) #filter to remove self intersections #
+idw.matrix$inverseDist <- (1/(idw.matrix$EucDist^2))
 
-colnames(ImpactsGRIDs)[colnames(ImpactsGRIDs)=="ID"]<-"nbr"
-EucDist <- merge(EucDist, ImpactsGRIDs, by = "nbr")
+colnames(impacts.aoo)[colnames(impacts.aoo)=="ID"]<-"nbr"
+idw.matrix <- merge(idw.matrix, impacts.aoo, by = "nbr")
 
 #Visual checking of distribution
-hist(EucDist$inverseDist, breaks = 30)
-(idw.impacts <- EucDist %>% group_by(src) %>%
-    summarise(across(CoralExt:imp.ssp585.2100, ~(sum(.x*inverseDist, na.rm = TRUE)/sum(inverseDist, na.rm = TRUE))))%>% mutate(ID = src) %>% dplyr::select(-src)
+hist(idw.matrix$inverseDist, breaks = 30)
+(idw.impacts <- idw.matrix %>% group_by(src) %>%
+    summarise(across(CoralExt:imp.ssp585.2050, ~(sum(.x*inverseDist, na.rm = TRUE)/sum(inverseDist, na.rm = TRUE))))%>% mutate(ID = src) %>% dplyr::select(-src)
 )
-(wio.com.idw.impacts <- merge(villageGridID, idw.impacts, by = "ID"))
+(wio.com.idw.impacts <- merge(village.aoo.id, idw.impacts, by = "ID"))
 plot(wio.com.idw.impacts$Cropland, wio.com.idw.impacts$sst90p_370_2050)
-write_csv(wio.com.idw.impacts, "2_Data/sheet/3_VillageImpacts.csv")
+write_csv(wio.com.idw.impacts, "2_Data/sheet/village.impacts.all.csv")
 
 ######################################################################################################################################################
 # NOW ANALYSE VILLAGE LEVEL RISK
@@ -166,14 +156,14 @@ socioecom <- socioecom %>% mutate(ISO3 = Country,
                                   ISO3 = ifelse(ISO3 == "Tanzania", "TZA", ISO3),
                                   ISO3 = ifelse(ISO3 == "Madagascar", "MDG", ISO3),
                                   ISO3 = ifelse(ISO3 == "Mozambique", "MOZ", ISO3))
-I_Ctrl <- read_csv("2_Data/sheet/4_ImpactControl.csv")
+I_Ctrl <- read_csv("2_Data/sheet/impact.control.csv")
 socioecom <- merge(socioecom, I_Ctrl, by.x = "ISO3")
 plot(socioecom$AdaptiveCapacity, exp(-socioecom$ic2020))
 
 library(ggthemes)
 library(ggrepel)
 socioecom$VillNation <- paste(socioecom$Villages, paste("(",socioecom$ISO3,")", sep = ""))
-socioecom$Vulnerable <- scales::rescale(socioecom$Sensitivity/((socioecom$AdaptiveCapacity*(socioecom$ic2020))), to=c(0.1,1))
+socioecom$Vulnerable <- scales::rescale(socioecom$Sensitivity/(socioecom$AdaptiveCapacity*socioecom$ic2020), to=c(0.01,1))
 
 ggplot(data = socioecom, aes(x="XS", y=Vulnerable,label=VillNation))+
   geom_boxplot(linewidth = 0.3)+
@@ -203,15 +193,15 @@ ggplot(data = socioecom, aes(x="XS", y=Vulnerable,label=VillNation))+
 #                                  PLOT RISK SPACES
 ##################################################################################################################
 #Import climate data
-villageImpacts <- read_csv("2_Data/sheet/3_VillageImpacts.csv")
+villageImpacts <- read_csv("2_Data/sheet/village.impacts.all.csv")
 riskMaster <- merge(socioecom, villageImpacts, by ="Villages")
 
-df <- rbind(data.frame(sce = "SSP2-4.5", impact = riskMaster$imp.ssp245.2050, Vulnerability = riskMaster$Vulnerable, village = riskMaster$Villages, ISO3 = riskMaster$ISO3),
-            data.frame(sce = "SSP5-8.5", impact = riskMaster$imp.ssp585.2050, Vulnerability = riskMaster$Vulnerable, village = riskMaster$Villages, ISO3 = riskMaster$ISO3))
+df <- rbind(data.frame(sce = "SSP2-4.5", impact = (riskMaster$imp.ssp245.2050), Vulnerability = (riskMaster$Vulnerable), village = riskMaster$Villages, ISO3 = riskMaster$ISO3),
+            data.frame(sce = "SSP5-8.5", impact = (riskMaster$imp.ssp585.2050), Vulnerability = (riskMaster$Vulnerable), village = riskMaster$Villages, ISO3 = riskMaster$ISO3))
 yR <- range(df$impact);xR <- range(df$Vulnerability)
 lgd <- expand.grid(x = seq(0,1,diff(xR)/100),
                    y = seq(0,1,diff(yR)/100)) %>%
-  mutate(mxCol = sqrt(x^2*y^2),
+  mutate(mxCol = (x^2*y^2),
          brks = ntile(mxCol,4),
          brks = ifelse(brks==1,"Low",ifelse(brks==2,"Medium",ifelse(brks==3,"High","Very high")))
   )
@@ -262,17 +252,16 @@ library(patchwork)
 grobs <- ggplotGrob(optSpace)$grobs
 legend <- grobs[[which(sapply(grobs, function(x) x$name) == "guide-box")]]
 
-(rrSpace <- ((riskspace|optSpace+theme(legend.position = "none"))/legend)+plot_layout(heights = c(2, .1)))
-#ggsave(plot=rrSpace, "3_Outputs/plots/Transition/Fig2a.png", dpi=1200, height=3, width=4)
+(rrSpace <- ((riskspace|optSpace+theme(legend.position = "none"))/legend)+plot_layout(heights = c(2,.1)))
+#ggsave(plot=rrSpace, "3_Outputs/plots/Transition/Fig2axx.png", dpi=1200, height=3, width=4)
 
 ##############################################################################################################################
-#                                 Estimate potential residual risk and plot difference among villages
+# Estimate potential residual risk and plot difference among villages
 #############################################################################################################################
 
-riskMaster <- riskMaster %>% 
-  mutate(risk585 = sqrt(imp.ssp585.2050^2*Vulnerable^2),
-         risk370 = sqrt(imp.ssp370.2050^2*Vulnerable^2),
-         risk245 = sqrt(imp.ssp245.2050^2*Vulnerable^2))
+riskMaster <- riskMaster %>% mutate(risk585 = (imp.ssp585.2050*Vulnerable),
+                                    risk370 = (imp.ssp370.2050*Vulnerable),
+                                    risk245 = (imp.ssp245.2050*Vulnerable))
 
 summary(riskMaster$risk585, na.rm=TRUE);sd(riskMaster$risk585, na.rm=TRUE)
 summary(riskMaster$risk245, na.rm=TRUE);sd(riskMaster$risk245, na.rm=TRUE)
@@ -398,8 +387,8 @@ custom_pal3 <- c(
 (plt1 <- ggplot()+
     geom_raster(data = lgd, aes(x = x, y = y, fill = paste(y1,x1,sep="-")))+
     scale_fill_manual(values = custom_pal3)+
-    geom_point(data = dfs, aes(x = TEV/1e6, y = risk585 , shape = "SSP5-8.5"), size = 1, stroke = .2) +
-    geom_point(data = dfs, aes(x = TEV/1e6, y = risk245, shape = "SSP2-4.5"), size = 1, stroke = .2) +
+    geom_point(data = dfs, aes(x = TEV/1e6, y = 1-risk585 , shape = "SSP5-8.5"), size = 1, stroke = .2) +
+    geom_point(data = dfs, aes(x = TEV/1e6, y = 1-risk245, shape = "SSP2-4.5"), size = 1, stroke = .2) +
     labs(y = "Climate risk [index]", x = "Total Economic Value (Million US$/year)")+
     #scale_colour_manual(name="", values = c("KEN"="darkred","MDG"="yellow","MOZ"="dodgerblue4","TZA"="cyan"))+
     theme_bw(base_size = 5)+
@@ -477,7 +466,7 @@ df <- xx %>% group_by(villages,sce) %>% arrange(desc(villages), .by_group = TRUE
 
 library(patchwork)
 (Fig3 <- (plt1|plt_))
-ggsave(plot = Fig3,"3_Outputs/plots/Fig3b.png", width = 5, height = 2.5, dpi = 1200)
+#ggsave(plot = Fig3,"3_Outputs/plots/Fig3b.png", width = 5, height = 2.5, dpi = 1200)
 
 
 
