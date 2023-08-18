@@ -1,5 +1,4 @@
 #PREPARE TO EXTRACT DATA TO AOO
-
 rm(list = ls())
 library("tidyverse");library("raster");library("SearchTrees");library("sf");library("sp");library("pracma")
 
