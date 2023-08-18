@@ -131,7 +131,7 @@ idw.matrix <- read_csv("2_Data/sheet/idw.dist.matrix.csv")
 village.aoo.id <- read_csv("2_Data/sheet/village.grid.id.csv")
 
 idw.matrix <- idw.matrix[c("src", "nbr", "EucDist")] %>% filter(EucDist>0) #filter to remove self intersections #
-idw.matrix$inverseDist <- (1/(idw.matrix$EucDist^2))
+idw.matrix$inverseDist <- (1/(idw.matrix$EucDist))
 
 colnames(impacts.aoo)[colnames(impacts.aoo)=="ID"]<-"nbr"
 idw.matrix <- merge(idw.matrix, impacts.aoo, by = "nbr")
@@ -361,9 +361,7 @@ riskMaster$ld_ssp245 = riskMaster$TEV*(1-riskMaster$risk245)
 sum(riskMaster$ld_ssp370, na.rm = TRUE)/sum(riskMaster$ld_ssp585, na.rm = TRUE)
 sum(riskMaster$ld_ssp245, na.rm = TRUE)/sum(riskMaster$ld_ssp585, na.rm = TRUE)
 
-dfs <- riskMaster[,c("ISO3","Villages","Sensitivity","AdaptiveCapacity","imp.ssp245.2050","imp.ssp370.2050","imp.ssp585.2050",
-                     "risk245","risk370","risk585","TEV","ld_ssp245","ld_ssp370","ld_ssp585")]
-#write_excel_csv(dfs, "3_Outputs/sheets/TableS3.csv")
+write_excel_csv(riskMaster, "3_Outputs/sheets/RiskMasterSheet.csv")
 
 yq2<- summary(dfs$risk585)[2]
 xq2<- summary(dfs$TEV/1e6)[3]

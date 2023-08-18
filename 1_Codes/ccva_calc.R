@@ -26,10 +26,10 @@ names(dat.n)
 
 # dummies to factor variables
 # on MD data, number
-dat.n <- dummiesToFactor(dat.n, dummies = c("electricity_solar", "electricity_generator", "electricity_grid","electricity_none","electricity_other"), facVar = "electricity")
-dat.n <- dummiesToFactor(dat.n, dummies = c("floor_material_dirt_soil","floor_material_wood", "floor_material_concrete","floor_material_tile"), facVar = "floor")
-dat.n <- dummiesToFactor(dat.n, dummies = c("wall_material_bamboo_thatch","wall_material_wood","wall_material_metal","wall_material_cement","wall_material_other"), facVar = "wall")
-dat.n <- dummiesToFactor(dat.n, dummies = c("roof_material_bamboo_thatch","roof_material_wood","roof_material_metal","roof_material_tile","roof_material_other"),facVar = "roof")
+dat.n <- dummiesToFactor(dat.n, dummies = c("electricity_solar","electricity_generator","electricity_grid","electricity_none","electricity_other"),facVar="electricity")
+dat.n <- dummiesToFactor(dat.n, dummies = c("floor_material_dirt_soil","floor_material_wood","floor_material_concrete","floor_material_tile"),facVar="floor")
+dat.n <- dummiesToFactor(dat.n, dummies = c("wall_material_bamboo_thatch","wall_material_wood","wall_material_metal","wall_material_cement","wall_material_other"),facVar="wall")
+dat.n <- dummiesToFactor(dat.n, dummies = c("roof_material_bamboo_thatch","roof_material_wood","roof_material_metal","roof_material_tile","roof_material_other"),facVar="roof")
 summary(dat.n)
 names(dat.n)
 
