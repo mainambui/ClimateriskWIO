@@ -229,9 +229,3 @@ r95IntFUN <- function(r, nYears, baseR, p, pn=c("near","far")){
 #    names(spdf) <- paste0("std_", nm)
 #    return(spdf)
 #  }
-
-
-
-# decayNormed <- function(x, rt, type = c("decay", "growth")){
-#   
-# }

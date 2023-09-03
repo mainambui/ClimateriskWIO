@@ -1,15 +1,13 @@
 library(ncdf4);library(sp);library(tidyverse);library(sf);library(raster)
 
 rm(list = ls())
-lfs.dir = "E:/Datasets/"
+lfs.dir = "E:/LARGE FILE STORAGE (LFS)/"
 #db.dir = "C:/Users/MQ45019738/Dropbox/6_WIO_CCVA/WIOProjects/Data/"
 
 #import some important functions
-source("1_Codes/2_KeyFunctions.R")
+source("1_Codes/3_KeyFunctions.R")
 
 #Import all data
-wio.AOO <- readRDS("2_Data/spreadsheet/2_Ecosystems/wioAOO.wTEV.rds")
-wio.AOO.spdf <- st_as_sf(wio.AOO, coords=c('x', 'y'), crs="+proj=longlat")
 wio.ISO3 <- st_read("2_Data/shp/country_shape.shp") %>% st_as_sf() %>% st_transform(crs = "+proj=longlat")
 
 #SEA SURFACE TEMPERATURE
@@ -144,11 +142,11 @@ if (require(ncdf4)) {
 }
 
 #LAND SURFACE TEMPERATURE
-lst.Hist <- stack(paste0(lfs.dir, "CLIM-CCVA/ts_historical_ESM25km.nc")); lst.Hist<- crop(lst.Hist,wio.ISO3)
-lst.sst126 <- stack(paste0(lfs.dir, "CLIM-CCVA/ts126_ESM25km.nc")); lst.sst126<- crop(lst.sst126,wio.ISO3)
-lst.sst245 <- stack(paste0(lfs.dir, "CLIM-CCVA/ts245_ESM25km.nc")); lst.sst245<- crop(lst.sst245,wio.ISO3)
-lst.sst370 <- stack(paste0(lfs.dir, "CLIM-CCVA/ts370_ESM25km.nc")); lst.sst370<- crop(lst.sst370,wio.ISO3)
-lst.sst585 <- stack(paste0(lfs.dir, "CLIM-CCVA/ts585_ESM25km.nc")); lst.sst585<- crop(lst.sst585,wio.ISO3)
+lst.Hist <- stack(paste0(lfs.dir, "CLIM-CCVA/ts_historical_ESM25km.nc")); lst.Hist<- mask(lst.Hist,wio.ISO3)
+lst.sst126 <- stack(paste0(lfs.dir, "CLIM-CCVA/ts126_ESM25km.nc")); lst.sst126<- mask(lst.sst126,wio.ISO3)
+lst.sst245 <- stack(paste0(lfs.dir, "CLIM-CCVA/ts245_ESM25km.nc")); lst.sst245<- mask(lst.sst245,wio.ISO3)
+lst.sst370 <- stack(paste0(lfs.dir, "CLIM-CCVA/ts370_ESM25km.nc")); lst.sst370<- mask(lst.sst370,wio.ISO3)
+lst.sst585 <- stack(paste0(lfs.dir, "CLIM-CCVA/ts585_ESM25km.nc")); lst.sst585<- mask(lst.sst585,wio.ISO3)
 
 #Plot timeseries of SST
 m1 <- list(lst.sst126, lst.sst245, lst.sst370, lst.sst585)
@@ -203,29 +201,29 @@ lst.trend.ssp370.2050 <- slpFUN(lst.sst370[[73:432]]) ;names(lst.trend.ssp370.20
 lst.trend.ssp370.2100 <- slpFUN(lst.sst370[[673:1032]]) ;names(lst.trend.ssp370.2100)<-"lst.trend.ssp370.2100"
 lst.trend.ssp585.2050 <- slpFUN(lst.sst585[[73:432]]) ;names(lst.trend.ssp585.2050)<-"lst.trend.ssp585.2050"
 lst.trend.ssp585.2100 <- slpFUN(lst.sst585[[673:1032]]) ;names(lst.trend.ssp585.2100)<-"lst.trend.ssp585.2100"
-# if (require(ncdf4)) {
-#   rnc <- raster::writeRaster(stack((lst90p.ssp126.2050),(lst90p.ssp126.2100),
-#                                    (lst90p.ssp245.2050),(lst90p.ssp245.2100),
-#                                    (lst90p.ssp370.2050),(lst90p.ssp370.2100),
-#                                    (lst90p.ssp585.2050),(lst90p.ssp585.2100)), 
-#                              filename=file.path("2_Data/raster/wio_esm_ts90p.nc"), format="CDF", overwrite=TRUE)
-# }
-# 
-# if (require(ncdf4)) {
-#   rnc <- raster::writeRaster(stack((lst90Int.ssp126.2050),(lst90Int.ssp126.2100),
-#                                    (lst90Int.ssp245.2050),(lst90Int.ssp245.2100),
-#                                    (lst90Int.ssp370.2050),(lst90Int.ssp370.2100),
-#                                    (lst90Int.ssp585.2050),(lst90Int.ssp585.2100)), 
-#                              filename=file.path("2_Data/raster/wio_esm_ts90Int.nc"), format="CDF", overwrite=TRUE)
-# }
-# 
-# if (require(ncdf4)) {
-#   rnc <- raster::writeRaster(stack( (lst.trend.ssp126.2050),(lst.trend.ssp126.2100),
-#                                     (lst.trend.ssp245.2050),(lst.trend.ssp245.2100),
-#                                     (lst.trend.ssp370.2050),(lst.trend.ssp370.2100),
-#                                     (lst.trend.ssp585.2050),(lst.trend.ssp585.2100)), 
-#                              filename=file.path("2_Data/raster/wio_esm_ts_trend.nc"), format="CDF", overwrite=TRUE)
-# }
+if (require(ncdf4)) {
+  rnc <- raster::writeRaster(stack((lst90p.ssp126.2050),(lst90p.ssp126.2100),
+                                   (lst90p.ssp245.2050),(lst90p.ssp245.2100),
+                                   (lst90p.ssp370.2050),(lst90p.ssp370.2100),
+                                   (lst90p.ssp585.2050),(lst90p.ssp585.2100)),
+                             filename=file.path("2_Data/raster/wio_esm_ts90p.nc"), format="CDF", overwrite=TRUE)
+}
+
+if (require(ncdf4)) {
+  rnc <- raster::writeRaster(stack((lst90Int.ssp126.2050),(lst90Int.ssp126.2100),
+                                   (lst90Int.ssp245.2050),(lst90Int.ssp245.2100),
+                                   (lst90Int.ssp370.2050),(lst90Int.ssp370.2100),
+                                   (lst90Int.ssp585.2050),(lst90Int.ssp585.2100)),
+                             filename=file.path("2_Data/raster/wio_esm_ts90Int.nc"), format="CDF", overwrite=TRUE)
+}
+
+if (require(ncdf4)) {
+  rnc <- raster::writeRaster(stack( (lst.trend.ssp126.2050),(lst.trend.ssp126.2100),
+                                    (lst.trend.ssp245.2050),(lst.trend.ssp245.2100),
+                                    (lst.trend.ssp370.2050),(lst.trend.ssp370.2100),
+                                    (lst.trend.ssp585.2050),(lst.trend.ssp585.2100)),
+                             filename=file.path("2_Data/raster/wio_esm_ts_trend.nc"), format="CDF", overwrite=TRUE)
+}
 
 #RAINFALL
 rr.prHist <- stack(paste0(lfs.dir, "CLIM-CCVA/pr_historical_ESM25km.nc")); rr.prHist<- crop(rr.prHist,wio.ISO3)
