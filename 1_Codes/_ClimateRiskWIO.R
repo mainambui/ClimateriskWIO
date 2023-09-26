@@ -131,7 +131,7 @@ village.aoo.id <- read.csv("2_Data/sheet/village.grid.id.csv")
 idw.matrix <- idw.matrix[c("src", "nbr", "EucDist")] %>% filter(EucDist>0) #filter to remove self intersections #
 idw.matrix$inverseDist <- (1/(idw.matrix$EucDist/1e6)^2)
 hist(idw.matrix$inverseDist , breaks = 50)
-#idw.matrix <- subset(idw.matrix, inverseDist <.1)
+idw.matrix <- subset(idw.matrix, inverseDist >.1)
 
 colnames(impacts.agg)[colnames(impacts.agg)=="ID"]<-"nbr"
 idw.matrix <- merge(idw.matrix, impacts.agg, by = "nbr")
@@ -242,7 +242,7 @@ socioecom <- socioecom %>% mutate(ISO3 = Country,
                                   ISO3 = ifelse(ISO3 == "Tanzania", "TZA", ISO3),
                                   ISO3 = ifelse(ISO3 == "Madagascar", "MDG", ISO3),
                                   ISO3 = ifelse(ISO3 == "Mozambique", "MOZ", ISO3))
-I_Ctrl <- read.csv("2_Data/sheet/impact.control.csv")
+I_Ctrl <- read.csv("2_Data/sheet/3_SocialVulnerability/impact.control.csv")
 socioecom <- merge(socioecom, I_Ctrl, by.x = "ISO3")
 plot(socioecom$AdaptiveCapacity, exp(-1*socioecom$ic2020))
 
@@ -350,15 +350,16 @@ grobs <- ggplotGrob(optSpace)$grobs
 legend <- grobs[[which(sapply(grobs, function(x) x$name) == "guide-box")]]
 
 (rrSpace <- ((riskspace|optSpace+theme(legend.position = "none"))/legend)+plot_layout(heights = c(2,.1)))
-ggsave(plot=rrSpace, "3_Outputs/plots/Fig2aN.png", dpi=1200, height=3, width=4)
+ggsave(plot=rrSpace, "3_Outputs/plots/Fig2a.png", dpi=1200, height=3, width=4)
 
 ##############################################################################################################################
 # Estimate potential residual risk and plot difference among villages
 #############################################################################################################################
 
-riskMaster <- riskMaster %>% mutate(risk585 = (imp.ssp585.2050*Vulnerable),
-                                    risk370 = (imp.ssp370.2050*Vulnerable),
-                                    risk245 = (imp.ssp245.2050*Vulnerable))
+riskMaster <- riskMaster %>% 
+  mutate(risk585 = (imp.ssp585.2050*Vulnerable),
+         risk370 = (imp.ssp370.2050*Vulnerable),
+         risk245 = (imp.ssp245.2050*Vulnerable))
 
 summary(riskMaster$risk585, na.rm=TRUE);sd(riskMaster$risk585, na.rm=TRUE)
 summary(riskMaster$risk245, na.rm=TRUE);sd(riskMaster$risk245, na.rm=TRUE)
@@ -449,17 +450,20 @@ ggsave(plot = plt3, "3_Outputs/plots/FigS3.png", dpi = 1200, height = 4, width =
 #econValues <- readxl::read_excel("2_Data/sheet/4_EconomicValuations/EcosystemServiceValueCoefficients.xlsx", sheet = "mini")
 econValues <- readr::read_csv("2_Data/sheet/4_EconomicValuations/Unit_Service_Values_Villages.csv")[,c(2,11,12,13,14)]
 colnames(econValues) <- c("Villages","CoralUnitValue","CropUnitValue","MangroveUnitValue","SeagrassUnitValue")
-as.numeric(econValues$CoralUnitValue)
-
 tev.data <- merge(riskMaster, econValues, by = "Villages")
 
 #Find total economic value
 tev.data$TEV = ((tev.data$CoralExt*tev.data$CoralUnitValue)+(tev.data$seagrassExt*tev.data$SeagrassUnitValue)+(tev.data$mangroveExt*tev.data$MangroveUnitValue)+(tev.data$Cropland*tev.data$CropUnitValue))/1e4 #divide by 10000 to convert from meters to hectares
 plot(tev.data$TEV/1e6, (1-tev.data$risk585))
 
-tev.data$fTEV_ssp585 = tev.data$TEV*(1-tev.data$risk585)
-tev.data$fTEV_ssp370 = tev.data$TEV*(1-tev.data$risk370)
-tev.data$fTEV_ssp245 = tev.data$TEV*(1-tev.data$risk245)
+tev.data$fTEV_ssp585 = tev.data$TEV*(tev.data$risk585)
+sum(tev.data$fTEV_ssp585);mean(tev.data$fTEV_ssp585);sd(tev.data$fTEV_ssp585)
+
+tev.data$fTEV_ssp370 = tev.data$TEV*(tev.data$risk370)
+sum(tev.data$fTEV_ssp370);mean(tev.data$fTEV_ssp370);sd(tev.data$fTEV_ssp370)
+
+tev.data$fTEV_ssp245 = tev.data$TEV*(tev.data$risk245)
+sum(tev.data$fTEV_ssp245);mean(tev.data$fTEV_ssp245);sd(tev.data$fTEV_ssp245)
 
 #Order of magnitude change
 #write_excel_csv(tev.data, "3_Outputs/sheets/RiskMasterSheet.csv")
