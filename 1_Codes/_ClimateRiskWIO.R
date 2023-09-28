@@ -1,16 +1,40 @@
-#PREPARE TO EXTRACT DATA TO AOO
+############################################################################################################################
+### Supporting Information to ###
 
-rm(list = ls())
+# Title: Rising climate risk and loss and damage to coastal small-scale fisheries livelihoods
+# Authors: Maina, Asamoah, et al. 202x
+# Journal: Nature Sustainability
+# School of Natural Sciences, Macquarie University, Sydney, Australia.
+# Codes by: asamoahfrt@gmail.com
+# Last updated: 
 
-library("dplyr");library("tidyterra");library("terra");library("sf");library("ggplot2")
-#library("pracma")
+############################################################################################################################
+# SUPPORTING SCRIPT 1: ESTIMATING CLIMATE RISK FOR VILLAGES
 
-#import some important functions
+# Steps in this script:
+#  1. Load, understand and prepare the dataset for analysis.
+#  2. Extract climate data and ecosystem data to AOO.
+#  3. Deduce and transform data for use in the integrative framework.
+#  3. Estimate climate impacts based on Choquet integral
+#  5. Extract data to
+# .....
+
+# First, clean workspace:
+rm(list = ls()); gc()
+
+# Install and load R packages needed to run the analysis:
+needed_packages <- c("dplyr", "tidyterra", "terra", "sf", "ggplot2")
+new.packages <- needed_packages[!(needed_packages %in% installed.packages()[,"Package"])]
+if(length(new.packages)) install.packages(new.packages)
+lapply(needed_packages, require, character.only = TRUE)
+rm(needed_packages,new.packages)
+
+# Import some important functions
 inormal <- function(x) {
   qrank <- ((rank(x, na.last = TRUE) - 0.5) / sum(!is.na(x)))
   z_score <- scales::rescale(sqrt(2)*pracma::erfinv(2*qrank-1))
   return(z_score)  }
-#
+
 #Import PU and convert to a spatial object
 wio.aoo <- readRDS("2_Data/sheet/wio.aoo.rds")
 grdSize <- (25*25*1e4)
@@ -38,7 +62,7 @@ hazards <- lapply(1:length(varlst), function(x){
 ) %>% rast()
 
 plot(hazards)
-#
+
 #Extract the raw hazards to the WIO's AOO of interest
 # set values below 100 to NA.
 climdata <- terra::extract(hazards, wio.aoo.spdf, xy=TRUE) %>% as.data.frame()
@@ -456,13 +480,15 @@ tev.data <- merge(riskMaster, econValues, by = "Villages")
 tev.data$TEV = ((tev.data$CoralExt*tev.data$CoralUnitValue)+(tev.data$seagrassExt*tev.data$SeagrassUnitValue)+(tev.data$mangroveExt*tev.data$MangroveUnitValue)+(tev.data$Cropland*tev.data$CropUnitValue))/1e4 #divide by 10000 to convert from meters to hectares
 plot(tev.data$TEV/1e6, (1-tev.data$risk585))
 
-tev.data$fTEV_ssp585 = tev.data$TEV*(tev.data$risk585)
+sum(tev.data$TEV, na.rm = TRUE)
+
+tev.data$fTEV_ssp585 = tev.data$TEV*(1-tev.data$risk585)
 sum(tev.data$fTEV_ssp585);mean(tev.data$fTEV_ssp585);sd(tev.data$fTEV_ssp585)
 
-tev.data$fTEV_ssp370 = tev.data$TEV*(tev.data$risk370)
+tev.data$fTEV_ssp370 = tev.data$TEV*(1-tev.data$risk370)
 sum(tev.data$fTEV_ssp370);mean(tev.data$fTEV_ssp370);sd(tev.data$fTEV_ssp370)
 
-tev.data$fTEV_ssp245 = tev.data$TEV*(tev.data$risk245)
+tev.data$fTEV_ssp245 = tev.data$TEV*(1-tev.data$risk245)
 sum(tev.data$fTEV_ssp245);mean(tev.data$fTEV_ssp245);sd(tev.data$fTEV_ssp245)
 
 #Order of magnitude change
