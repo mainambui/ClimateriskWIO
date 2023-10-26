@@ -103,6 +103,11 @@ all.climdata <- merge(all.climdata, climdata[,1:14], by = "ID") %>%
  mutate(across(std_corals:std_FEve,~ scales::rescale(.x)))#FRic, FDiv, and FEve are already normalised variables
 saveRDS(all.climdata, "2_Data/sheet/all.climdata.rds")
 
+
+
+
+
+
 #AGGREGATION NEXT
 all.data <- readRDS("2_Data/sheet/all.climdata.rds")
 namelist <- colnames(all.data)
@@ -149,10 +154,10 @@ impacts.agg <- merge(impacts.agg, all.data[,c("ID","CoralExt","seagrassExt","man
 #########################################################################################################################################
 #Merge grid level impacts to the network
 #########################################################################################################################################
-idw.matrix <- read.csv("2_Data/sheet/idw.dist.matrix.csv")
-village.aoo.id <- read.csv("2_Data/sheet/village.grid.id.csv")
+idw.matrix <- data.table::fread("2_Data/sheet/idw.dist.matrix.csv", stringsAsFactors=TRUE, encoding="UTF-8")
+village.aoo.id <- data.table::fread("2_Data/sheet/village.grid.id.csv", stringsAsFactors=TRUE, encoding="UTF-8")
 
-idw.matrix <- idw.matrix[c("src", "nbr", "EucDist")] %>% filter(EucDist>0) #filter to remove self intersections #
+idw.matrix <- idw.matrix[,c("src", "nbr", "EucDist")] %>% filter(EucDist>0) #filter to remove self intersections #
 idw.matrix$inverseDist <- (1/(idw.matrix$EucDist/1e6)^2)
 hist(idw.matrix$inverseDist , breaks = 50)
 idw.matrix <- subset(idw.matrix, inverseDist >.1)
@@ -168,7 +173,7 @@ idw.matrix <- merge(idw.matrix, impacts.agg, by = "nbr")
 ##############################
 #FIGURE 3: PLOT IMPACTS for EACH SYSTEM
 ##############################
-data <- villageImpacts[,c("Country","Villages",colnames(villageImpacts)[grep("std_",colnames(villageImpacts))])]
+data <- as.data.frame(villageImpacts)[,c("Country","Villages",colnames(villageImpacts)[grep("std_",colnames(villageImpacts))])]
 data <- data.frame(
   mapply(c,
          cbind(data[,c("Country","Villages",colnames(data)[grep("ssp245",colnames(data))])], sce = "SSP2-4.5"),
@@ -270,8 +275,7 @@ I_Ctrl <- read.csv("2_Data/sheet/3_SocialVulnerability/impact.control.csv")
 socioecom <- merge(socioecom, I_Ctrl, by.x = "ISO3")
 plot(socioecom$AdaptiveCapacity, exp(-1*socioecom$ic2020))
 
-library(ggthemes)
-library(ggrepel)
+library(ggthemes);library(ggrepel)
 socioecom$VillNation <- paste(socioecom$Villages, paste("(",socioecom$ISO3,")", sep = ""))
 socioecom$Vulnerable <- scales::rescale((socioecom$Sensitivity/socioecom$AdaptiveCapacity)*exp(-1*socioecom$ic2020), to = c(0.01, 1))
 # ggplot(data = socioecom, aes(x="XS", y=Vulnerable,label=VillNation))+
@@ -330,19 +334,21 @@ lgd$brks <- factor(lgd$brks, levels = c("Low","Medium","High","Very high"))
     geom_raster(data = lgd, aes(x = x, y = y, fill = brks))+
     scale_fill_viridis_c()+
     scale_fill_manual(values = c("Low"="#d3d3d3", "Medium"="#a88283", "High"="#7e433e", "Very high"="#551601"))+
-    geom_point(data = df, aes(x = Vulnerability, y = impact, shape=sce),size = .8, stroke = .2) +
+    geom_point(data = df, aes(x = Vulnerability, y = impact, shape=sce, colour = ISO3),size = .8, stroke = .2) +
     labs(y = "Climate change impacts", x = "", #title = "a. RISK SPACE"
          )+
-    scale_y_continuous(expand = c(0,0), breaks = seq(0,1,.2), labels = c("0",".2",".4",".6",".8","1"))+
-    scale_x_continuous(expand = c(0,0), breaks = seq(0,1,.2), labels = c("0",".2",".4",".6",".8","1"))+ 
+    scale_y_continuous(expand = c(0,0),breaks = seq(0,1,.2), labels = c("0",".2",".4",".6",".8","1"))+
+    scale_x_continuous(expand = c(0,0),breaks = seq(0,1,.2), labels = c("0",".2",".4",".6",".8","1"))+ 
     theme_bw(base_size = 8)+
     scale_shape_manual(values = c("SSP2-4.5" = 19, "SSP5-8.5" = 17))+
-    guides(shape="none", colour = "none")+
-    theme(legend.position = "none",
+    scale_colour_manual(values = c("KEN"="darkred","MDG"="yellow","MOZ"="dodgerblue4","TZA"="grey50"))+
+    guides(shape="none")+
+    theme(legend.position = "bottom",
+          panel.grid = element_blank(),
           legend.title = element_blank(),
           legend.background = element_rect(fill = NA),
           legend.key.size = unit(1,'cm'),
-          legend.text = element_text(size = 8),
+          legend.text = element_text(size = 5),
           legend.key.height = unit(.1, 'cm'),
           legend.key.width = unit(.2, 'cm'),
           axis.ticks = element_line(linewidth = .1),
@@ -358,6 +364,7 @@ lgd$brks <- factor(lgd$brks, levels = c("Low","Medium","High","Very high"))
     theme_bw(base_size = 8)+
     guides(shape="none", colour = "none")+
     theme(legend.position = "bottom",
+          panel.grid = element_blank(),
           legend.title = element_blank(),
           legend.background = element_rect(fill = NA),
           legend.key.size = unit(1, 'cm'),
@@ -370,10 +377,10 @@ lgd$brks <- factor(lgd$brks, levels = c("Low","Medium","High","Very high"))
 
 library(patchwork)
 # Create grid
-grobs <- ggplotGrob(optSpace)$grobs
-legend <- grobs[[which(sapply(grobs, function(x) x$name) == "guide-box")]]
+grobs1 <- ggplotGrob(riskspace)$grobs
+legend1 <- grobs1[[which(sapply(grobs1, function(x) x$name) == "guide-box")]]
 
-(rrSpace <- ((riskspace|optSpace+theme(legend.position = "none"))/legend)+plot_layout(heights = c(2,.1)))
+(rrSpace <- ((riskspace+theme(legend.position = "none")|optSpace+theme(legend.position = "none"))/legend1)+plot_layout(heights = c(2,.1)))
 ggsave(plot=rrSpace, "3_Outputs/plots/Fig2a.png", dpi=1200, height=3, width=4)
 
 ##############################################################################################################################
@@ -469,6 +476,7 @@ ggsave(plot = plt3, "3_Outputs/plots/FigS3.png", dpi = 1200, height = 4, width =
 ###################################################################################################################
 #                     ECONOMIC VALUATION APPROACHES
 ##################################################################################################################
+r = 1+0.024 #https://www.cbo.gov/publication/58957
 
 #Import value coefficients
 #econValues <- readxl::read_excel("2_Data/sheet/4_EconomicValuations/EcosystemServiceValueCoefficients.xlsx", sheet = "mini")
@@ -482,14 +490,21 @@ plot(tev.data$TEV/1e6, (1-tev.data$risk585))
 
 sum(tev.data$TEV, na.rm = TRUE)
 
-tev.data$fTEV_ssp585 = tev.data$TEV*(1-tev.data$risk585)
+tev.data$fTEV_ssp585 = r*(tev.data$TEV*(1-tev.data$risk585))
 sum(tev.data$fTEV_ssp585);mean(tev.data$fTEV_ssp585);sd(tev.data$fTEV_ssp585)
+sum(tev.data$fTEV_ssp585, na.rm = TRUE)/sum(tev.data$TEV, na.rm = TRUE)
 
-tev.data$fTEV_ssp370 = tev.data$TEV*(1-tev.data$risk370)
+tev.data$fTEV_ssp370 = r*(tev.data$TEV*(1-tev.data$risk370))
 sum(tev.data$fTEV_ssp370);mean(tev.data$fTEV_ssp370);sd(tev.data$fTEV_ssp370)
+sum(tev.data$fTEV_ssp370, na.rm = TRUE)/sum(tev.data$TEV, na.rm = TRUE)
 
-tev.data$fTEV_ssp245 = tev.data$TEV*(1-tev.data$risk245)
+tev.data$fTEV_ssp245 = r*(tev.data$TEV*(1-tev.data$risk245))
 sum(tev.data$fTEV_ssp245);mean(tev.data$fTEV_ssp245);sd(tev.data$fTEV_ssp245)
+sum(tev.data$fTEV_ssp245, na.rm = TRUE)/sum(tev.data$TEV, na.rm = TRUE)
+
+tev.data$perc_tev_585 <- (tev.data$TEV-tev.data$fTEV_ssp585)/tev.data$TEV
+tev.data$perc_tev_245 <- (tev.data$TEV-tev.data$fTEV_ssp245)/tev.data$TEV
+
 
 #Order of magnitude change
 #write_excel_csv(tev.data, "3_Outputs/sheets/RiskMasterSheet.csv")
