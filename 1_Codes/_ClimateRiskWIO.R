@@ -626,4 +626,30 @@ df <- xx %>% group_by(villages,sce) %>% arrange(desc(villages), .by_group = TRUE
 ggsave(plot = fg3b,"3_Outputs/plots/Fig3b.png", width = 4.5, height = 6, dpi = 1200)
 
 
-
+################################
+#Adaptation gap plot as radial bar chart 
+###############################
+# Libraries
+library(tidyverse)
+library(hrbrthemes)
+# Load dataset
+# plot
+tev.data %>%
+  filter(!is.na(risk585)) %>%
+  arrange(risk585) %>%
+  tail(6) %>%
+  mutate(Villages=factor(Villages, Villages)) %>%
+  ggplot( aes(x=Villages, y=risk585) ) +
+  geom_bar(fill="#69b3a2", stat="identity") +
+  geom_text(hjust = 1, size = 3, aes( y = 0, label = paste(Villages," "))) +
+  theme_ipsum() +
+  theme(
+    panel.grid.minor.y = element_blank(),
+    panel.grid.major.y = element_blank(),
+    legend.position="none",
+    axis.text = element_blank()
+  ) +
+  xlab("") +
+  ylab("") +
+  coord_polar(theta = "y") +
+  ylim(0,1) 
