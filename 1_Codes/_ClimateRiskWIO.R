@@ -485,14 +485,14 @@ colnames(econValues) <- c("Villages","CoralUnitValue","CropUnitValue","MangroveU
 tev.data <- merge(riskMaster, econValues, by = "Villages")
 
 #Find total economic value
-tev.data$TEV = ((tev.data$CoralExt*tev.data$CoralUnitValue)+(tev.data$seagrassExt*tev.data$SeagrassUnitValue)+(tev.data$mangroveExt*tev.data$MangroveUnitValue)+(tev.data$Cropland*tev.data$CropUnitValue))/1e4 #divide by 10000 to convert from meters to hectares
+tev.data$TEV = ((tev.data[,"CoralExt"]*tev.data[,"CoralUnitValue"])+(tev.data[,"seagrassExt"]*tev.data[,"SeagrassUnitValue"])+(tev.data[,"mangroveExt"]*tev.data[,"MangroveUnitValue"])+(tev.data[,"Cropland"]*tev.data[,"CropUnitValue"]))/1e4 #divide by 10000 to convert from meters to hectares
 plot(tev.data$TEV/1e6, (1-tev.data$risk585))
 
 sum(tev.data$TEV, na.rm = TRUE)
 
 tev.data$fTEV_ssp585 = r*(tev.data$TEV*(1-tev.data$risk585))
 sum(tev.data$fTEV_ssp585);mean(tev.data$fTEV_ssp585);sd(tev.data$fTEV_ssp585)
-sum(tev.data$fTEV_ssp585, na.rm = TRUE)/sum(tev.data$TEV, na.rm = TRUE)
+median(tev.data$fTEV_ssp585, na.rm = TRUE)/median(tev.data$TEV, na.rm = TRUE)
 
 tev.data$fTEV_ssp370 = r*(tev.data$TEV*(1-tev.data$risk370))
 sum(tev.data$fTEV_ssp370);mean(tev.data$fTEV_ssp370);sd(tev.data$fTEV_ssp370)
@@ -500,7 +500,7 @@ sum(tev.data$fTEV_ssp370, na.rm = TRUE)/sum(tev.data$TEV, na.rm = TRUE)
 
 tev.data$fTEV_ssp245 = r*(tev.data$TEV*(1-tev.data$risk245))
 sum(tev.data$fTEV_ssp245);mean(tev.data$fTEV_ssp245);sd(tev.data$fTEV_ssp245)
-sum(tev.data$fTEV_ssp245, na.rm = TRUE)/sum(tev.data$TEV, na.rm = TRUE)
+median(tev.data$fTEV_ssp245, na.rm = TRUE)/median(tev.data$TEV, na.rm = TRUE)
 
 tev.data$perc_tev_585 <- (tev.data$TEV-tev.data$fTEV_ssp585)/tev.data$TEV
 tev.data$perc_tev_245 <- (tev.data$TEV-tev.data$fTEV_ssp245)/tev.data$TEV
