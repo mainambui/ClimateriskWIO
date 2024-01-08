@@ -6,7 +6,7 @@
 # Journal: Nature Sustainability
 # School of Natural Sciences, Macquarie University, Sydney, Australia.
 # Codes by: asamoahfrt@gmail.com
-# Last updated: 
+# Last updated: 9/01/2024
 
 ############################################################################################################################
 # SUPPORTING SCRIPT 1: ESTIMATING CLIMATE RISK FOR VILLAGES
@@ -76,7 +76,7 @@ source("1_Codes/qTransform.R")
 (HazardQNormed <- qTranform(climdata, vlst = varlst, time = c(2050), scenario = c(245,370,585)))
 
 # #Import tropical cyclone data.
-slr.tc.data <- rast("C:/Users/MQ45019738/Dropbox/6_WIO_CCVA/WIOProjects/3_WIO_SYNTHESIS/Data/1-Climate metrics/TC/TC_count.tif")
+slr.tc.data <- rast("./2_Data/raster/TC_count.tif")
 #slr.tc.data <- app(slr.tc.data, function(x) (scales::rescale(x)))
 slr.tc.data <- cbind(ID = wio.aoo.spdf$ID, (terra::extract(slr.tc.data, wio.aoo.spdf) %>% as.data.frame())[-1])
 colnames(slr.tc.data)[colnames(slr.tc.data)=="layer"] <- "TC"
@@ -154,6 +154,7 @@ impacts.agg <- merge(impacts.agg, all.data[,c("ID","CoralExt","seagrassExt","man
 #########################################################################################################################################
 #Merge grid level impacts to the network
 #########################################################################################################################################
+
 idw.matrix <- data.table::fread("2_Data/sheet/idw.dist.matrix.csv", stringsAsFactors=TRUE, encoding="UTF-8")
 village.aoo.id <- data.table::fread("2_Data/sheet/village.grid.id.csv", stringsAsFactors=TRUE, encoding="UTF-8")
 
@@ -505,12 +506,11 @@ median(tev.data$fTEV_ssp245, na.rm = TRUE)/median(tev.data$TEV, na.rm = TRUE)
 tev.data$perc_tev_585 <- (tev.data$TEV-tev.data$fTEV_ssp585)/tev.data$TEV
 tev.data$perc_tev_245 <- (tev.data$TEV-tev.data$fTEV_ssp245)/tev.data$TEV
 
-
 #Order of magnitude change
 #write_excel_csv(tev.data, "3_Outputs/sheets/RiskMasterSheet.csv")
 
 #import bivariate codes
-source("E:/4A_FLII_RISKS/codes/ColMatrix.R")
+source("1_Codes/ColMatrix.R")
 
 # Define the number of breaks
 nBreaks <- 50
