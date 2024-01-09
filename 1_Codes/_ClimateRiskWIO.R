@@ -507,20 +507,21 @@ tev.data$perc_tev_585 <- (tev.data$TEV-tev.data$fTEV_ssp585)/tev.data$TEV
 tev.data$perc_tev_245 <- (tev.data$TEV-tev.data$fTEV_ssp245)/tev.data$TEV
 
 #Order of magnitude change
-#write_excel_csv(tev.data, "3_Outputs/sheets/RiskMasterSheet.csv")
+lnd_dat <- tev.data[,c("ISO3", "Villages","Sensitivity","AdaptiveCapacity","imp.ssp245.2050","imp.ssp370.2050","imp.ssp585.2050","risk585","risk370","risk245","TEV","fTEV_ssp585","fTEV_ssp370","fTEV_ssp245")]
+write.csv(lnd_dat, "3_Outputs/sheets/SupplementalTable4.csv", row.names = F)
 
 #import bivariate codes
 source("1_Codes/ColMatrix.R")
 
 # Define the number of breaks
-nBreaks <- 50
+nBreaks <- 20
 # Create the colour matrix
 col.matVul <- colmat(nbreaks = nBreaks, breakstyle = "quantile",
                      xlab = "X", ylab = "Y",
                      upperleft = "#4279b0",
-                     upperright = "#311e3b",
+                     upperright = "#9e3547",
                      bottomleft =  "#d3d3d3",
-                     bottomright = "#9e3547",
+                     bottomright = "#311e3b",
                      saveLeg = FALSE, plotLeg = TRUE)
 # Retrieve bivariate colour pallet data
 lgdBiv <- BivLegend$data; names(lgdBiv) <- c("binY", "binX", "BivCol", "UID")
@@ -529,11 +530,11 @@ lgdBiv <- BivLegend$data; names(lgdBiv) <- c("binY", "binX", "BivCol", "UID")
 ymn <- median(tev.data$TEV/1e6, na.rm=TRUE)
 xR <- range(tev.data$risk585);yR <- range(tev.data$TEV/1e6)
 lgd <- expand.grid(
-  y = seq(0,30, diff(yR)/150),
+  y = seq(0,50, diff(yR)/150),
   x = seq(0,1, diff(xR)/150)
   ) %>% mutate(
-    binY = ntile(y,50),
-    binX = ntile(x,50)
+    binY = ntile(y,20),
+    binX = ntile(x,20)
     )%>% 
   inner_join(y = lgdBiv, by = c("binY", "binX"))
 
@@ -554,12 +555,12 @@ lgd <- expand.grid(
     scale_fill_identity()+
     geom_point(data = tev.data, aes(x = risk585, y = TEV/1e6, shape = "SSP5-8.5"), size = 2, stroke = .2) +
     #geom_point(data = tev.data, aes(x = risk245, y = TEV/1e6, shape = "SSP2-4.5"), size = 1, stroke = .2) +
-    labs(x = "Climate risk", y = "Total economic value \n(Million US$/year)")+
+    labs(x = "Climate risk index", y = "Total economic value \n(Million US$/year)")+
     #scale_colour_manual(name="", values = c("KEN"="darkred","MDG"="yellow","MOZ"="dodgerblue4","TZA"="cyan"))+
     theme_bw(base_size = 15)+
-    scale_y_continuous(expand = c(0,0), breaks = seq(0,30,5), limits = c(0,30))+
-    scale_x_continuous(expand = c(0,0), breaks = seq(0,1,.2))+
-    scale_shape_manual(values = c("SSP2-4.5" = 1, "SSP5-8.5" = 2))+
+    scale_y_continuous(expand = c(0,0), breaks = seq(0,50,5), limits = c(0,50))+
+    scale_x_continuous(expand = c(0,0), breaks = seq(0,1,.2), limits = c(-0.01,1))+
+    scale_shape_manual(values = c("SSP5-8.5" = 2))+
     guides(fill="none", colour = "none")+
     theme(legend.position = "none",
           legend.title = element_blank(),
