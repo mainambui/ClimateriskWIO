@@ -279,29 +279,29 @@ plot(socioecom$AdaptiveCapacity, exp(-1*socioecom$ic2020))
 library(ggthemes);library(ggrepel)
 socioecom$VillNation <- paste(socioecom$Villages, paste("(",socioecom$ISO3,")", sep = ""))
 socioecom$Vulnerable <- scales::rescale((socioecom$Sensitivity/socioecom$AdaptiveCapacity)*exp(-1*socioecom$ic2020), to = c(0.01, 1))
-# ggplot(data = socioecom, aes(x="XS", y=Vulnerable,label=VillNation))+
-#   geom_boxplot(linewidth = 0.3)+
-#   geom_point(aes(colour = ISO3), position=position_jitter(width=.1, height=0))+
-#   scale_colour_manual(name="", values = c("KEN"="darkred","MDG"="yellow","MOZ"="dodgerblue4","TZA"="grey"))+
-#   geom_text_repel(size = 1)+
-#   scale_y_continuous(name = "Social vulnerability", expand = c(0,0), limits = c(0,1.02),breaks = seq(0,1,.2))+ labs(x = "")+
-#   theme_classic(base_size = 12)+
-#   guides(shape="none", colour = "none")+
-#   theme(legend.position = "none",
-#         legend.title = element_blank(),
-#         legend.background = element_rect(fill = NA),
-#         legend.key.size = unit(1, 'cm'),
-#         axis.text.x = element_blank(),
-#         panel.grid.minor = element_blank(),
-#         legend.text = element_text(size = 8),
-#         legend.key.height = unit(.1, 'cm'),
-#         legend.key.width = unit(.2, 'cm'), 
-#         axis.line.x = element_blank(),
-#         axis.ticks.x = element_blank(),
-#         axis.line.y = element_line(linewidth = .1),
-#         axis.ticks.y = element_line(linewidth = .1)
-#         )
-#ggsave("3_Outputs/plots/FigS2.png", width = 4, height = 5, dpi = 1200)
+ggplot(data = socioecom, aes(x="XS", y=Vulnerable,label=VillNation))+
+  geom_boxplot(linewidth = 0.3)+
+  geom_point(aes(colour = ISO3), position=position_jitter(width=.1, height=0))+
+  scale_colour_manual(name="", values = c("KEN"="darkred","MDG"="yellow","MOZ"="dodgerblue4","TZA"="grey"))+
+  geom_text_repel(size = 1)+
+  scale_y_continuous(name = "Social vulnerability", expand = c(0,0), limits = c(0,1.02),breaks = seq(0,1,.2))+ labs(x = "")+
+  theme_classic(base_size = 12)+
+  guides(shape="none", colour = "none")+
+  theme(legend.position = "none",
+        legend.title = element_blank(),
+        legend.background = element_rect(fill = NA),
+        legend.key.size = unit(1, 'cm'),
+        axis.text.x = element_blank(),
+        panel.grid.minor = element_blank(),
+        legend.text = element_text(size = 8),
+        legend.key.height = unit(.1, 'cm'),
+        legend.key.width = unit(.2, 'cm'),
+        axis.line.x = element_blank(),
+        axis.ticks.x = element_blank(),
+        axis.line.y = element_line(linewidth = .1),
+        axis.ticks.y = element_line(linewidth = .1)
+        )
+ggsave("3_Outputs/plots/FigS2.png", width = 4, height = 5, dpi = 1200)
 
 ##################################################################################################################
 #                                  PLOT RISK SPACES
