@@ -56,3 +56,33 @@ lgd <- expand.grid(x = seq(0.4,.5,diff(xR)/500), y = seq(0,.2,diff(yR)/500)) %>%
           panel.border = element_blank()))
 ggsave("3_Outputs/plots/mdg_/mdg_biplot.png", dpi = 1200, height = 4, width = 4)
 
+
+
+# other plot
+require(reshape2)
+domains<-ggplot(data = melt(data_), aes(x=variable, y=value)) + geom_boxplot(aes(fill=variable))+ theme(legend.position="none", axis.text.x=element_text(angle = -90, hjust = 0))
+ggsave("3_Outputs/plots/mdg_/mdg_domains.png", dpi = 1200, height = 4, width = 4) +  geom_jitter() 
+
+
+
+
+get_box_stats <- function(y, upper_limit = max(data_$SS) * 1.15) {
+  return(data.frame(
+    y = 0.95 * upper_limit,
+    label = paste(length(y), "\n",
+                  round(mean(y), 2), "\n",
+                  round(median(y), 2), "\n"
+    )
+  ))
+}
+
+
+
+SS<-ggplot(data_, aes(x = reorder(villages,SS), y = SS, fill = SS)) +
+  geom_boxplot() +
+  stat_summary(fun.data = get_box_stats, geom = "text", hjust = 0.5, vjust = 0.9) +
+  theme_classic() + geom_jitter() + theme(legend.position="none") + xlab("Villages")
+
+ggsave("3_Outputs/plots/mdg_/mdg_SSplot.png", dpi = 1200, height = 4, width = 8)
+
+
