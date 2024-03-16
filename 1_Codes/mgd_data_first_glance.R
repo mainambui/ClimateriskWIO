@@ -109,6 +109,10 @@ ac.pair<-ac.pair  + theme(
 
 ggsave("3_Outputs/plots/mdg_/ac_stats_plots.png", dpi = 1200, height = 8, width = 8)
 
+#Circular plots of domains
+
+ddata_long<-melt(data_[,c(2,4:7)])
+
 
 
 ##Other plots
