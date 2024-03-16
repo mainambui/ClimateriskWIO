@@ -1,21 +1,75 @@
-#sumamry stats
-#non-parametric test of sensitivity and adaptove capacity between villages
 
-
-
-
-
-
-
-
-
-
-
-##plotting
-
-library(dplyr);library(ggplot2);library(readxl)
+library(dplyr);library(ggplot2);library(readxl); 
+library(rstatix);library(ggstatsplot)
 data_ <- read_excel("2_Data/blue_ventures_data/20240214_CCVA_Analysis_9Mar.xlsx", skip=1)
 #colnames(data_) <- c("HH","Livelihood","Demography","Cultural","Health","Learning","Assets","Flexibility","Agency","Organisation","SS","AC")
+data_sub<-data_[-c(1,3)]
+
+#summary stats
+#non-parametric test of sensitivity and adaptive capacity between villages
+#summary stats
+#https://www.datanovia.com/en/lessons/kruskal-wallis-test-in-r/
+
+data_ %>% 
+  group_by(Village) %>%
+  get_summary_stats(Sensitivity, type = "common")
+
+ggboxplot(data_, x = "Village", y = "Sensitivity")
+
+#comparisons
+ss.kruskal <- data_ %>% kruskal_test(Sensitivity ~ Village)
+ss.kruskal
+
+#y.             n     statistic  df      p        method        
+#1 Sensitivity 244    59.9       13 0.0000000555 Kruskal-Wallis
+#we see significant differences
+
+#effect size
+#The interpretation values commonly in published literature are:
+#0.01- < 0.06 (small effect), 0.06 - < 0.14 (moderate effect) and >= 0.14 (large effect).
+
+data_ %>% kruskal_effsize(Sensitivity ~ Village)
+
+#.y.             n effsize method  magnitude
+#1 Sensitivity   244   0.204 eta2[H] large e    
+
+#From the output of the Kruskal-Wallis test, we know that there is a significant difference between groups,
+#but we don’t know which pairs of groups are different.
+ 
+#Pairwise comparisons using Dunn’s test:x
+ # Pairwise comparisons
+ pwc_ss <- data_ %>% 
+   dunn_test(Sensitivity ~ Village, p.adjust.method = "bonferroni") 
+ pwc_ss
+ 
+ #Pairwise comparisons using Wilcoxon’s test:
+ #confidence level modif9ed tp 0.90 i.e sognofcance level of p<=0.1
+ pwc2_ss <- data_ %>% 
+ wilcox_test(Sensitivity ~ Village, p.adjust.method = "bonferroni")
+ pwc2_ss
+ ##The pairwise comparison shows that, only Ampan and Nosy are significantly different .
+ 
+ #Visualise
+ pwc2_ss <- pwc2_ss %>% add_xy_position(x = "Village")
+ ggboxplot(data_, x = "Village", y = "Sensitivity") +
+   stat_pvalue_manual(pwc2_ss, hide.ns = TRUE) +
+   labs(subtitle = get_test_label(ss.kruskal, detailed = TRUE),
+     caption = get_pwc_label(pwc2_ss))
+   #scale_y_continuous(name = "Social sensitivity",expand = c(0,0),limits = c(0.2,0.8))
+ 
+
+
+##ploting
+ 
+ ggcorrmat(
+   data     = data_[,4:12],
+  #colors   = c("#B2182B", "white", "#4D4D4D"),
+   title    = "Correlalogram for SS and AC domains"
+ )
+ 
+ 
+ 
+ 
 
 #data_$villages <- stringr::str_extract(data_$HH, "^.{3}")
 
