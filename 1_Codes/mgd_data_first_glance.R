@@ -1,6 +1,6 @@
 
 library(dplyr);library(ggplot2);library(readxl); 
-library(rstatix);library(ggstatsplot)
+library(rstatix);library(ggstatsplot);library(plotly)
 data_ <- read_excel("2_Data/blue_ventures_data/20240214_CCVA_Analysis_9Mar.xlsx", skip=1)
 #colnames(data_) <- c("HH","Livelihood","Demography","Cultural","Health","Learning","Assets","Flexibility","Agency","Organisation","SS","AC")
 data_sub<-data_[-c(1,3)]
@@ -59,20 +59,60 @@ data_ %>% kruskal_effsize(Sensitivity ~ Village)
  
 
 
-##ploting
- 
- ggcorrmat(
+##plotting
+ ##correlate the domains
+ #https://indrajeetpatil.github.io/ggstatsplot/
+ corr_domains<-ggcorrmat(
    data     = data_[,4:12],
   #colors   = c("#B2182B", "white", "#4D4D4D"),
    title    = "Correlalogram for SS and AC domains"
  )
+ggsave("3_Outputs/plots/mdg_/domaina_corr.png", dpi = 1200, height = 6, width = 6) 
  
- 
- 
- 
+#b
+ss.pair<-ggbetweenstats(
+  data  = data_,
+  x     = Village,
+  y     = Sensitivity,
+  type = "nonparametric",
+  pairwise.display = "significant",
+  title = "Sensitivity across villages"
+)
+ss.pair  + theme(
+  axis.text.x=element_text(size = 12, angle = -90, hjust = 0.5),
+  axis.line = element_line(linewidth = .1, color="black"), 
+  axis.ticks = element_line(linewidth = .1, color="black"),
+  axis.title.x = element_text(size = 12),
+  axis.text.y = element_text(size = 12),
+  axis.title.y = element_text(size = 12)
+)
 
-#data_$villages <- stringr::str_extract(data_$HH, "^.{3}")
+ggsave("3_Outputs/plots/mdg_/ss_stats_plots.png", dpi = 1200, height = 8, width = 8)
 
+
+ac.pair<-ggbetweenstats(
+  data  = data_,
+  x     = Village,
+  y     = `Adaptive capacity`,
+  type = "nonparametric",
+  pairwise.display = "significant",
+  title = "Adaptive Capacity across villages"
+)
+ac.pair<-ac.pair  + theme(
+  axis.text.x=element_text(size = 12, angle = -90, hjust = 0.5),
+  axis.line = element_line(linewidth = .1, color="black"), 
+  axis.ticks = element_line(linewidth = .1, color="black"),
+  axis.title.x = element_text(size = 12),
+  axis.text.y = element_text(size = 12),
+  axis.title.y = element_text(size = 12)
+)
+
+ggsave("3_Outputs/plots/mdg_/ac_stats_plots.png", dpi = 1200, height = 8, width = 8)
+
+
+
+##Other plots
+#plotting sensitivity and adaptive capacity means 
 data_gg <- aggregate( .~ Village, data_[-c(1,3)], mean)
 stderror <- function(x) sd(x)/sqrt(length(x))
 data_se <- aggregate( .~ Village, data_[-c(1,3)], stderror)
