@@ -1,7 +1,6 @@
 ############################################################################################################################
-### Supporting Information to ###
 
-# Title: Rising climate risk and loss and damage to coastal small-scale fisheries livelihoods
+# Supporting workflow for "Rising climate risk and loss and damage to coastal small-scale fisheries livelihoods"
 # Authors: Maina, Asamoah, et al. 202x
 # Journal: Nature Sustainability
 # School of Natural Sciences, Macquarie University, Sydney, Australia.
@@ -9,8 +8,8 @@
 # Last updated: 9/01/2024
 
 ############################################################################################################################
-# SUPPORTING SCRIPT 1: ESTIMATING CLIMATE RISK FOR VILLAGES
 
+# SUPPORTING SCRIPT 1: ESTIMATING CLIMATE RISK FOR VILLAGES
 # Steps in this script:
 #  1. Load, understand and prepare the dataset for analysis.
 #  2. Extract climate data and ecosystem data to AOO.
@@ -35,7 +34,7 @@ inormal <- function(x) {
   z_score <- scales::rescale(sqrt(2)*pracma::erfinv(2*qrank-1))
   return(z_score)  }
 
-#Import PU and convert to a spatial object
+# Import PU and convert to a spatial object
 wio.aoo <- readRDS("2_Data/sheet/wio.aoo.rds")
 grdSize <- (25*25*1e4)
 wooFilter <- as.vector(wio.aoo %>% mutate(across(CoralExt:Cropland, ~ .x/grdSize)) %>% rowwise() %>%
@@ -46,7 +45,7 @@ wio.aoo.sub <- filter(wio.aoo, ID %in% wooFilter$ID)
 wio.aoo.spdf <- st_as_sf(wio.aoo.sub, coords=c('x', 'y'), crs="+proj=longlat") %>% vect()
 plot(wio.aoo.spdf)
 
-#LOAD METRICS
+# LOAD METRICS
 (clim.nc <- list.files("./2_Data/raster",pattern='*.nc',full.names=TRUE))
 
 #Note that each NC file contains eight layers which is generally structured as SSP126_2050, SSP126_2100, SSP245_2050, SSP245_2100, SSP370_2050, SSP370_2100, SSP585_2050, SSP585_2100
@@ -63,21 +62,21 @@ hazards <- lapply(1:length(varlst), function(x){
 
 plot(hazards)
 
-#Extract the raw hazards to the WIO's AOO of interest
+# Extract the raw hazards to the WIO's AOO of interest
 # set values below 100 to NA.
 climdata <- terra::extract(hazards, wio.aoo.spdf, xy=TRUE) %>% as.data.frame()
 climdata <- cbind(as.data.frame(wio.aoo.spdf), climdata[,-1])
 climdata <- climdata %>% relocate(c(x,y), .before = ID)
 N <- ncol(climdata)
-#climdata <- cbind(climdata[1:14], DMwR2::knnImputation(climdata[15:N], k = 3))
+climdata <- cbind(climdata[1:14], DMwR2::knnImputation(climdata[15:N], k = 1))
 
-#Inverse normal standardised variables
+# Inverse normal standardised variables
 source("1_Codes/qTransform.R")
 (HazardQNormed <- qTranform(climdata, vlst = varlst, time = c(2050), scenario = c(245,370,585)))
 
-# #Import tropical cyclone data.
+# Import tropical cyclone data.
 slr.tc.data <- rast("./2_Data/raster/TC_count.tif")
-#slr.tc.data <- app(slr.tc.data, function(x) (scales::rescale(x)))
+# slr.tc.data <- app(slr.tc.data, function(x) (scales::rescale(x)))
 slr.tc.data <- cbind(ID = wio.aoo.spdf$ID, (terra::extract(slr.tc.data, wio.aoo.spdf) %>% as.data.frame())[-1])
 colnames(slr.tc.data)[colnames(slr.tc.data)=="layer"] <- "TC"
 
@@ -89,8 +88,17 @@ slr.tc.data <- slr.tc.data[,c(1,3:5)] #Select only TC
 
 all.climdata <- merge(HazardQNormed, slr.tc.data, by = "ID")
 
-# #Normalised exposed systems metrics
-all.climdata <- merge(all.climdata, climdata[,1:14], by = "ID") %>%
+# Add the coordinates
+all.climdata <- merge(climdata[,1:3],all.climdata,  by = "ID") %>% as.data.frame()
+
+# Convert to a spatial object
+all.climdata <- filter(all.climdata, !is.na(y)); all.climdata <- filter(all.climdata, !is.na(x)) #NAs are not allow in sf convert 
+normed_hazards_ <- st_as_sf(all.climdata, coords = c("x","y"), crs = st_crs(4326))
+plot(normed_hazards_[15])
+st_write(normed_hazards_, "2_Data/normed_hazards_.shp", overwrite = TRUE)
+
+# Normalised exposed systems metrics
+all.climdata <- merge(all.climdata, climdata[,3:14], by = "ID") %>%
    #Create copies of the Exposed systems. the original versions will be needed later
    mutate(std_corals = log10(CoralExt/grdSize),
           std_seagrass = log10(seagrassExt/grdSize),
@@ -100,15 +108,12 @@ all.climdata <- merge(all.climdata, climdata[,1:14], by = "ID") %>%
           std_Nb_sp = FRic,
           std_FRic = FRic,
           std_FEve = FEve )%>%
- mutate(across(std_corals:std_FEve,~ scales::rescale(.x)))#FRic, FDiv, and FEve are already normalised variables
-saveRDS(all.climdata, "2_Data/sheet/all.climdata.rds")
+ mutate(across(std_corals:std_FEve,~ scales::rescale(.x))) #FRic, FDiv, and FEve are already normalised variables
+saveRDS(all.climdata, "2_Data/sheet/normed_hazards_exposure.rds")
 
 
 
-
-
-
-#AGGREGATION NEXT
+# AGGREGATION NEXT
 all.data <- readRDS("2_Data/sheet/all.climdata.rds")
 namelist <- colnames(all.data)
 fuzzyS <- function(x){return(1 - prod((1 - x)))}
@@ -125,9 +130,10 @@ all.data <- cbind(all.data, coralSys[,"std_fish.div"])
 library(kappalab)
 mu <- readRDS("2_Data/sheet/mu.rds");summary(mu) #Overall mu
 
-#Choquet.integral(mu,f)
+# Choquet.integral(mu,f)
 exposure <- c("std_seagrass","std_mangrove","std_cropcover","std_corals","std_fish.div")
-#exposure <- c("std_seagrass","std_mangrove","std_cropcover","std_corals.all")
+# exposure <- c("std_seagrass","std_mangrove","std_cropcover","std_corals.all")
+
 (impacts.aoo <- lapply(1:length(exposure),function(i){
   df <- cbind(ID=all.data[,"ID"], all.data[,exposure[[i]]]*all.data[,namelist[grep("_2050",namelist)]])
   n <- ncol(df)
@@ -628,14 +634,15 @@ ggsave(plot = fg3b,"3_Outputs/plots/Fig3b.png", width = 4.5, height = 6, dpi = 1
 
 
 ################################
-#Adaptation gap plot as radial bar chart 
+# Adaptation gap plot as radial bar chart 
 ###############################
 # Libraries
 library(dplyr)
 library(tidyverse)
 library(hrbrthemes)
 bar_width <- .9 # default width of bars in geom_bar
-#plot
+
+# Plot
 tev.data %>%
   filter(!is.na(risk585)) %>%
   arrange(risk585) %>%
