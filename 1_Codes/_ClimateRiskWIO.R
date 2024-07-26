@@ -68,7 +68,7 @@ climdata <- terra::extract(hazards, wio.aoo.spdf, xy=TRUE) %>% as.data.frame()
 climdata <- cbind(as.data.frame(wio.aoo.spdf), climdata[,-1])
 climdata <- climdata %>% relocate(c(x,y), .before = ID)
 N <- ncol(climdata)
-climdata <- cbind(climdata[1:14], DMwR2::knnImputation(climdata[15:N], k = 1))
+# climdata <- cbind(climdata[1:14], DMwR2::knnImputation(climdata[15:N], k = 1))
 
 # Inverse normal standardised variables
 source("1_Codes/qTransform.R")
@@ -95,7 +95,7 @@ all.climdata <- merge(climdata[,1:3],all.climdata,  by = "ID") %>% as.data.frame
 all.climdata <- filter(all.climdata, !is.na(y)); all.climdata <- filter(all.climdata, !is.na(x)) #NAs are not allow in sf convert 
 normed_hazards_ <- st_as_sf(all.climdata, coords = c("x","y"), crs = st_crs(4326))
 plot(normed_hazards_[15])
-st_write(normed_hazards_, "2_Data/normed_hazards_.shp", overwrite = TRUE)
+# st_write(normed_hazards_, "2_Data/normed_hazards_.shp", overwrite = TRUE)
 
 # Normalised exposed systems metrics
 all.climdata <- merge(all.climdata, climdata[,3:14], by = "ID") %>%
@@ -114,7 +114,7 @@ saveRDS(all.climdata, "2_Data/sheet/normed_hazards_exposure.rds")
 
 
 # AGGREGATION NEXT
-all.data <- readRDS("2_Data/sheet/all.climdata.rds")
+all.data <- readRDS("2_Data/sheet/normed_hazards_exposure.rds")
 namelist <- colnames(all.data)
 fuzzyS <- function(x){return(1 - prod((1 - x)))}
 
@@ -480,196 +480,6 @@ df <- rbind(data.frame(sce = "SSP2-4.5", MN = riskMaster$risk245, ISO3 = df$ISO3
           axis.ticks = element_line(linewidth = .1)))
 ggsave(plot = plt3, "3_Outputs/plots/FigS3.png", dpi = 1200, height = 4, width = 4)
 
-###################################################################################################################
-#                     ECONOMIC VALUATION APPROACHES
-##################################################################################################################
-r = 1+0.024 #https://www.cbo.gov/publication/58957
-
-#Import value coefficients
-#econValues <- readxl::read_excel("2_Data/sheet/4_EconomicValuations/EcosystemServiceValueCoefficients.xlsx", sheet = "mini")
-econValues <- readr::read_csv("2_Data/sheet/4_EconomicValuations/Unit_Service_Values_Villages.csv")[,c(2,11,12,13,14)]
-colnames(econValues) <- c("Villages","CoralUnitValue","CropUnitValue","MangroveUnitValue","SeagrassUnitValue")
-tev.data <- merge(riskMaster, econValues, by = "Villages")
-
-#Find total economic value
-tev.data$TEV = ((tev.data[,"CoralExt"]*tev.data[,"CoralUnitValue"])+(tev.data[,"seagrassExt"]*tev.data[,"SeagrassUnitValue"])+(tev.data[,"mangroveExt"]*tev.data[,"MangroveUnitValue"])+(tev.data[,"Cropland"]*tev.data[,"CropUnitValue"]))/1e4 #divide by 10000 to convert from meters to hectares
-plot(tev.data$TEV/1e6, (1-tev.data$risk585))
-
-sum(tev.data$TEV, na.rm = TRUE)
-
-tev.data$fTEV_ssp585 = r*(tev.data$TEV*(1-tev.data$risk585))
-sum(tev.data$fTEV_ssp585);mean(tev.data$fTEV_ssp585);sd(tev.data$fTEV_ssp585)
-median(tev.data$fTEV_ssp585, na.rm = TRUE)/median(tev.data$TEV, na.rm = TRUE)
-
-tev.data$fTEV_ssp370 = r*(tev.data$TEV*(1-tev.data$risk370))
-sum(tev.data$fTEV_ssp370);mean(tev.data$fTEV_ssp370);sd(tev.data$fTEV_ssp370)
-sum(tev.data$fTEV_ssp370, na.rm = TRUE)/sum(tev.data$TEV, na.rm = TRUE)
-
-tev.data$fTEV_ssp245 = r*(tev.data$TEV*(1-tev.data$risk245))
-sum(tev.data$fTEV_ssp245);mean(tev.data$fTEV_ssp245);sd(tev.data$fTEV_ssp245)
-median(tev.data$fTEV_ssp245, na.rm = TRUE)/median(tev.data$TEV, na.rm = TRUE)
-
-tev.data$perc_tev_585 <- (tev.data$TEV-tev.data$fTEV_ssp585)/tev.data$TEV
-tev.data$perc_tev_245 <- (tev.data$TEV-tev.data$fTEV_ssp245)/tev.data$TEV
-
-#Order of magnitude change
-lnd_dat <- tev.data[,c("ISO3", "Villages","Sensitivity","AdaptiveCapacity","imp.ssp245.2050","imp.ssp370.2050","imp.ssp585.2050","risk585","risk370","risk245","TEV","fTEV_ssp585","fTEV_ssp370","fTEV_ssp245")]
-write.csv(lnd_dat, "3_Outputs/sheets/SupplementalTable4.csv", row.names = F)
-
-#import bivariate codes
-source("1_Codes/ColMatrix.R")
-
-# Define the number of breaks
-nBreaks <- 20
-# Create the colour matrix
-col.matVul <- colmat(nbreaks = nBreaks, breakstyle = "quantile",
-                     xlab = "X", ylab = "Y",
-                     upperleft = "#4279b0",
-                     upperright = "#9e3547",
-                     bottomleft =  "#d3d3d3",
-                     bottomright = "#311e3b",
-                     saveLeg = FALSE, plotLeg = TRUE)
-# Retrieve bivariate colour pallet data
-lgdBiv <- BivLegend$data; names(lgdBiv) <- c("binY", "binX", "BivCol", "UID")
-
-#Plot
-ymn <- median(tev.data$TEV/1e6, na.rm=TRUE)
-xR <- range(tev.data$risk585);yR <- range(tev.data$TEV/1e6)
-lgd <- expand.grid(
-  y = seq(0,50, diff(yR)/150),
-  x = seq(0,1, diff(xR)/150)
-  ) %>% mutate(
-    binY = ntile(y,20),
-    binX = ntile(x,20)
-    )%>% 
-  inner_join(y = lgdBiv, by = c("binY", "binX"))
-
-# custom_pal3 <- c(
-#   "1-1" = "#d3d3d3", # low x, low y
-#   "2-1" = "#ba8890",
-#   "3-1" = "#9e3547", # high x, low y
-#   "1-2" = "#8aa6c2",
-#   "2-2" = "#7a6b84", # medium x, medium y
-#   "3-2" = "#682a41",
-#   "1-3" = "#4279b0", # low x, high y
-#   "2-3" = "#3a4e78",
-#   "3-3" = "#311e3b" # high x, high y
-# )
-(plt1 <- ggplot()+
-    geom_raster(data = lgd, aes(x = x, y = y, fill = BivCol))+
-    #scale_fill_manual(values = custom_pal3)+
-    scale_fill_identity()+
-    geom_point(data = tev.data, aes(x = risk585, y = TEV/1e6, shape = "SSP5-8.5"), size = 2, stroke = .2) +
-    #geom_point(data = tev.data, aes(x = risk245, y = TEV/1e6, shape = "SSP2-4.5"), size = 1, stroke = .2) +
-    labs(x = "Climate risk index", y = "Total economic value \n(Million US$/year)")+
-    #scale_colour_manual(name="", values = c("KEN"="darkred","MDG"="yellow","MOZ"="dodgerblue4","TZA"="cyan"))+
-    theme_bw(base_size = 15)+
-    scale_y_continuous(expand = c(0,0), breaks = seq(0,50,5), limits = c(0,50))+
-    scale_x_continuous(expand = c(0,0), breaks = seq(0,1,.2), limits = c(-0.01,1))+
-    scale_shape_manual(values = c("SSP5-8.5" = 2))+
-    guides(fill="none", colour = "none")+
-    theme(legend.position = "none",
-          legend.title = element_blank(),
-          legend.background = element_rect(fill = NA),
-          legend.key.size = unit(1, 'cm'),
-          #legend.text = element_text(size = 5),
-          legend.key.height = unit(.1, 'cm'),
-          legend.key.width = unit(.2, 'cm'),
-          panel.border = element_blank()))
-ggsave(plot = plt1,"3_Outputs/plots/Fig3b.png", width = 4, height = 3.5, dpi = 1200)
-
-(xx <- rbind(
-  data.frame(value=tev.data$TEV/1e6, sce = "Current", villages=tev.data$VillNation, ISO3 = tev.data$ISO3, rankBy = (tev.data$TEV/1e6)),
-  data.frame(value=tev.data$fTEV_ssp245/1e6, sce = "SSP2-4.5", villages=tev.data$VillNation, ISO3 = tev.data$ISO3, rankBy = (tev.data$TEV/1e6)),
-  data.frame(value=tev.data$fTEV_ssp585/1e6, sce = "SSP5-8.5", villages=tev.data$VillNation, ISO3 = tev.data$ISO3, rankBy = (tev.data$TEV/1e6)))
-  )
-df <- xx %>% group_by(villages,sce) %>% arrange(desc(villages), .by_group = TRUE) %>%
-  ungroup() %>% mutate(paired = rep(1:(n()/3),each=3))
-(plt2 <- ggplot()+
-    geom_point(data = filter(df, sce == "Current"), aes(x=value, y=reorder(villages,-rankBy), colour = sce, shape=sce), size = 1.2)+
-    geom_point(data = filter(df, sce == "SSP2-4.5"), aes(x=value, y=reorder(villages,-rankBy), colour = sce, shape=sce), size = 1.2)+
-    geom_point(data = filter(df, sce == "SSP5-8.5"), aes(x=value, y=reorder(villages,-rankBy), colour = sce, shape=sce), size = 1.2)+
-
-    geom_line(data = df, aes(x=value, y=villages, group = paired),color="grey",linewidth=.1, arrow = arrow(ends = "first",type = "closed",length=unit(0.01, "inches")))+
-    labs(x = "Total economic value \n(Million US$/year)", y = "")+
-    #scale_y_discrete(position = "right")+
-    scale_shape_manual("", values = c("Current" = 16, "SSP2-4.5" = 15, "SSP5-8.5" = 17))+
-    scale_colour_manual("", values = c("Current" = "grey", "SSP2-4.5" = "green4", "SSP5-8.5" = "darkred"))+
-    theme_classic(base_size = 10)+
-    #guides(colour = "none")+
-    theme(legend.position = "bottom",
-          #legend.text = element_text(size = 5),
-          legend.key.size = unit(.5, 'lines'),
-          legend.spacing.y = element_blank(),
-          legend.background = element_rect(fill = NA),
-          panel.grid.major.y = element_blank(),
-          panel.grid.major.x = element_blank(),
-          #axis.text.x = element_text(size = 5, angle = 45, vjust = 1, hjust = 1),
-          axis.line = element_line(linewidth = .1),
-          axis.ticks = element_line(linewidth = .1))
-  )
-
-(rr1 <- ggplot()+
-    geom_boxplot(data = tev.data, aes(x="Current", y = TEV/1e6, fill = "Current"), colour = "grey", linewidth =0.1, outlier.size = .01)+
-    geom_boxplot(data = tev.data, aes(x="SSP2-4.5", y = fTEV_ssp245/1e6, fill = "SSP2-4.5"), colour = "grey", linewidth =0.1, outlier.size = .01)+
-    geom_boxplot(data = tev.data, aes(x="SSP5-8.5", y = fTEV_ssp585/1e6, fill = "SSP5-8.5"), colour = "grey", linewidth =0.1, outlier.size = .01)+
-    labs(y = "TEV \n(Million US$/year)", x = "")+
-    scale_fill_manual(values = c("Current" = "grey", "SSP2-4.5" = "green4", "SSP5-8.5" = "darkred"))+
-    theme_classic(base_size = 10)+    guides(colour = "none")+
-    theme(legend.position = "none",
-          legend.title = element_blank(),
-          legend.background = element_rect(fill = NA),
-          legend.key.size = unit(1, 'cm'),
-          axis.text.x = element_blank(),
-          panel.grid.minor = element_blank(),
-          #legend.text = element_text(size = 5),
-          legend.key.height = unit(.1, 'cm'),
-          legend.key.width = unit(.2, 'cm'),
-          axis.line.x = element_blank(),
-          axis.ticks.x = element_blank(),
-          axis.line.y = element_line(linewidth = .1),
-          axis.ticks.y = element_line(linewidth = .1)))
-(fg3b <- plt2 + inset_element(rr1, 0.6, 0.6, 1, 1))
-ggsave(plot = fg3b,"3_Outputs/plots/Fig3b.png", width = 4.5, height = 6, dpi = 1200)
-
-
-################################
-# Adaptation gap plot as radial bar chart 
-###############################
-# Libraries
-library(dplyr)
-library(tidyverse)
-library(hrbrthemes)
-bar_width <- .9 # default width of bars in geom_bar
-
-# Plot
-tev.data %>%
-  filter(!is.na(risk585)) %>%
-  arrange(risk585) %>%
-  #tail(6) %>%
-  mutate(Villages=factor(Villages, Villages)) %>%
-  mutate(adapt.gap585 = ifelse(risk585 >0.25, risk585-0.25, risk585))%>%
-  ggplot( aes(x=Villages, y=risk585) ) +
-  geom_bar(fill="#69b3a2", stat="identity") +
-  geom_text(hjust = 1, size = 3, aes( y = 0, label = paste(Villages,""))) +
-  theme_ipsum() +   
-  geom_rect(aes(
-    xmin = as.numeric(Villages) - bar_width / 2,
-    xmax = as.numeric(Villages) + bar_width / 2,
-    ymin = 0.25,
-    ymax = risk585,
-  ), fill = "blue") +
-  theme(
-    panel.grid.minor.y = element_blank(),
-    panel.grid.major.y = element_blank(),
-    legend.position="none",
-    axis.title=element_blank(),
-    axis.text.y=element_blank()
-  ) +
-  xlab("") +
-  ylab("") +
-  coord_polar(theta = "y") +
-  ylim(0,1) 
 
 
 
